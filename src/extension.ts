@@ -77,7 +77,7 @@ function parseThemeScreenDict(themeFilePath: string): Record<string, string> {
   return dict;
 }
 
-/** ถ้าพบ "--xxx" -> "var(--xxx)" */
+/** ถ้าพบ --xxx => var(--xxx) */
 function convertCSSVariable(val: string): string {
   return val.replace(/(--[\w-]+)/g, 'var($1)');
 }
@@ -116,7 +116,7 @@ function parseBlocksExtended(
     };
 
     for (const line of lines) {
-      // base e.g. c[yellow]
+      // base
       let m = /^(\w+)\[([^\]]+)\]$/.exec(line);
       if (m) {
         const ab = m[1];
@@ -135,7 +135,7 @@ function parseBlocksExtended(
         continue;
       }
 
-      // states: hover|active|focus|focus-visible|focus-within
+      // states
       const stateRegex = /^(hover|active|focus|focus-visible|focus-within)\(.+\)$/;
       if (stateRegex.test(line)) {
         const mm = stateRegex.exec(line);
@@ -166,7 +166,7 @@ function parseBlocksExtended(
         }
       }
 
-      // screen(...)
+      // screen
       if (/^screen\(.+\)$/.test(line)) {
         if (!block.screens) block.screens = [];
         const inner = line.replace(/^screen\(|\)$/g, '').trim();
@@ -199,7 +199,7 @@ function parseBlocksExtended(
         continue;
       }
 
-      // container(...)
+      // container
       if (/^container\(.+\)$/.test(line)) {
         if (!block.container) block.container = [];
         const inner = line.replace(/^container\(|\)$/g, '').trim();
@@ -230,7 +230,7 @@ function parseBlocksExtended(
         continue;
       }
 
-      // before(...) / after(...)
+      // before/after
       if (/^(before|after)\(.+\)$/.test(line)) {
         const isBefore = line.startsWith('before(');
         const isAfter = line.startsWith('after(');
@@ -265,7 +265,7 @@ function parseBlocksExtended(
   return result;
 }
 
-/** buildLineHover: ใส่ ";" ต่อท้าย property */
+/** buildLineHover */
 function buildLineHover(info: IHoverInfo): vscode.Hover {
   const { type, className, props, query, stateName } = info;
 
@@ -274,12 +274,10 @@ function buildLineHover(info: IHoverInfo): vscode.Hover {
       if (!props) return new vscode.Hover('');
       const entries = Object.entries(props);
       if (!entries.length) return new vscode.Hover('');
-      // สมมติใส่เฉพาะอันแรก
       const [k, v] = entries[0];
       return new vscode.Hover({ language: 'css', value: `${k}: ${v};` });
     }
     case 'state': {
-      // .box:hover {
       let lines = `${className}:${stateName} {\n`;
       for (const k of Object.keys(props ?? {})) {
         lines += `  ${k}: ${props![k]};\n`;
@@ -323,69 +321,85 @@ function buildLineHover(info: IHoverInfo): vscode.Hover {
   return new vscode.Hover('');
 }
 
-/** buildClassHover: ตอน hover .box => ใส่ ";" ท้าย property */
+/** buildClassHover: เว้นบรรทัดคั่น block */
 function buildClassHover(className: string, block: IClassBlock): vscode.Hover {
-  let lines = `${className} {\n`;
-  for (const k of Object.keys(block.base)) {
-    lines += `  ${k}: ${block.base[k]};\n`;
-  }
-  lines += `}`;
+  let linesArr: string[] = [];
 
-  // states
+  // 1) base
+  {
+    let tmp = `${className} {\n`;
+    for (const k of Object.keys(block.base)) {
+      tmp += `  ${k}: ${block.base[k]};\n`;
+    }
+    tmp += `}`;
+    linesArr.push(tmp);
+  }
+
+  // 2) states
   for (const stName of Object.keys(block.states)) {
-    lines += `\n${className}:${stName} {\n`;
+    let tmp = `${className}:${stName} {\n`;
     const stProps = block.states[stName];
     for (const k of Object.keys(stProps)) {
-      lines += `  ${k}: ${stProps[k]};\n`;
+      tmp += `  ${k}: ${stProps[k]};\n`;
     }
-    lines += `}`;
+    tmp += `}`;
+    linesArr.push(tmp);
   }
 
-  // screens
+  // 3) screens
   if (block.screens) {
     for (const sc of block.screens) {
-      lines += `\n@media only screen and ${sc.query} {\n  ${className} {\n`;
+      let tmp = `@media only screen and ${sc.query} {\n  ${className} {\n`;
       for (const k of Object.keys(sc.props)) {
-        lines += `    ${k}: ${sc.props[k]};\n`;
+        tmp += `    ${k}: ${sc.props[k]};\n`;
       }
-      lines += `  }\n}`;
+      tmp += `  }\n}`;
+      linesArr.push(tmp);
     }
   }
 
-  // container
+  // 4) container
   if (block.container) {
     for (const c of block.container) {
-      lines += `\n@container ${c.query} {\n  ${className} {\n`;
+      let tmp = `@container ${c.query} {\n  ${className} {\n`;
       for (const k of Object.keys(c.props)) {
-        lines += `    ${k}: ${c.props[k]};\n`;
+        tmp += `    ${k}: ${c.props[k]};\n`;
       }
-      lines += `  }\n}`;
+      tmp += `  }\n}`;
+      linesArr.push(tmp);
     }
   }
 
-  // pseudoBefore
+  // 5) pseudoBefore
   if (block.pseudoBefore) {
-    lines += `\n${className}::before {\n`;
+    let tmp = `${className}::before {\n`;
     for (const k of Object.keys(block.pseudoBefore)) {
-      lines += `  ${k}: ${block.pseudoBefore[k]};\n`;
+      tmp += `  ${k}: ${block.pseudoBefore[k]};\n`;
     }
-    lines += `}`;
+    tmp += `}`;
+    linesArr.push(tmp);
   }
-  // pseudoAfter
+  // 6) pseudoAfter
   if (block.pseudoAfter) {
-    lines += `\n${className}::after {\n`;
+    let tmp = `${className}::after {\n`;
     for (const k of Object.keys(block.pseudoAfter)) {
-      lines += `  ${k}: ${block.pseudoAfter[k]};\n`;
+      tmp += `  ${k}: ${block.pseudoAfter[k]};\n`;
     }
-    lines += `}`;
+    tmp += `}`;
+    linesArr.push(tmp);
   }
 
-  return new vscode.Hover({ language: 'css', value: lines });
+  // สุดท้ายให้ต่อกันโดยเว้นบรรทัดเปล่า
+  // e.g. linesArr = [".box {...}", "", "...", ""]
+  // join ด้วย "\n\n" => เว้นบรรทัดเปล่าหนึ่งบรรทัด
+  const finalText = linesArr.join('\n\n');
+
+  return new vscode.Hover({ language: 'css', value: finalText });
 }
 
 /** MAIN EXTENSION */
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('Styledwind Intellisense is now active (final w/ semicolons)');
+  console.log('Styledwind Intellisense is now active (with blank lines)');
 
   let paletteColors: string[] = [];
   let screenDict: Record<string, string> = {};
@@ -419,6 +433,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const lineText = document.lineAt(position).text;
         const textBeforeCursor = lineText.substring(0, position.character);
+
         const m = /(\w+)\[$/.exec(textBeforeCursor);
         if (!m) return;
 
