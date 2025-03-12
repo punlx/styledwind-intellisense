@@ -15,9 +15,6 @@ interface IClassBlock {
   linesMap: Record<string, IHoverInfo>;
 }
 
-/**
- * สำหรับเก็บข้อมูลว่า บรรทัด hover(bg[red]) หรือ screen(sm, ...) เป็นของ class ไหน
- */
 interface IHoverInfo {
   type: 'base' | 'state' | 'screen' | 'container' | 'before' | 'after';
   stateName?: string;
@@ -27,7 +24,7 @@ interface IHoverInfo {
   props?: Record<string, string>;
 }
 
-/** ฟังก์ชัน parseThemePaletteFile: หาโค้ด palette ใน styledwind.theme.ts */
+/** parseThemePaletteFile */
 function parseThemePaletteFile(themeFilePath: string): string[] {
   if (!fs.existsSync(themeFilePath)) return [];
   const content = fs.readFileSync(themeFilePath, 'utf8');
@@ -56,7 +53,7 @@ function parseThemePaletteFile(themeFilePath: string): string[] {
   return result;
 }
 
-/** parseThemeScreenDict: เช่น theme.screen({ sm:'max-w[700px]', lg:'min-w[1200px]' }) => { sm:'max-w[700px]', ...} */
+/** parseThemeScreenDict */
 function parseThemeScreenDict(themeFilePath: string): Record<string, string> {
   const dict: Record<string, string> = {};
   if (!fs.existsSync(themeFilePath)) return dict;
@@ -80,14 +77,12 @@ function parseThemeScreenDict(themeFilePath: string): Record<string, string> {
   return dict;
 }
 
-/**
- * ถ้าพบ "--xxx" ใน string => replace เป็น "var(--xxx)"
- */
+/** ถ้าพบ "--xxx" -> "var(--xxx)" */
 function convertCSSVariable(val: string): string {
   return val.replace(/(--[\w-]+)/g, 'var($1)');
 }
 
-/** แปลง "sm" => "max-w[700px]" => "(max-width:700px)" โดยดูจาก screenDict */
+/** "sm" => "max-w[700px]" => "(max-width:700px)" */
 function convertScreenOrBreakpoint(token: string, screenDict: Record<string, string>): string {
   if (screenDict[token]) {
     token = screenDict[token];
@@ -97,10 +92,7 @@ function convertScreenOrBreakpoint(token: string, screenDict: Record<string, str
   return `(${m[1]}-width: ${m[2]})`;
 }
 
-/**
- * parseBlocksExtended:
- * แยก .class { ... } เป็น IClassBlock
- */
+/** parseBlocksExtended */
 function parseBlocksExtended(
   docText: string,
   screenDict: Record<string, string>
@@ -124,7 +116,7 @@ function parseBlocksExtended(
     };
 
     for (const line of lines) {
-      // 1) base e.g. c[yellow]
+      // base e.g. c[yellow]
       let m = /^(\w+)\[([^\]]+)\]$/.exec(line);
       if (m) {
         const ab = m[1];
@@ -143,7 +135,7 @@ function parseBlocksExtended(
         continue;
       }
 
-      // 2) states
+      // states: hover|active|focus|focus-visible|focus-within
       const stateRegex = /^(hover|active|focus|focus-visible|focus-within)\(.+\)$/;
       if (stateRegex.test(line)) {
         const mm = stateRegex.exec(line);
@@ -174,7 +166,7 @@ function parseBlocksExtended(
         }
       }
 
-      // 3) screen(...)
+      // screen(...)
       if (/^screen\(.+\)$/.test(line)) {
         if (!block.screens) block.screens = [];
         const inner = line.replace(/^screen\(|\)$/g, '').trim();
@@ -207,7 +199,7 @@ function parseBlocksExtended(
         continue;
       }
 
-      // 4) container(...)
+      // container(...)
       if (/^container\(.+\)$/.test(line)) {
         if (!block.container) block.container = [];
         const inner = line.replace(/^container\(|\)$/g, '').trim();
@@ -238,7 +230,7 @@ function parseBlocksExtended(
         continue;
       }
 
-      // 5) before(...) / after(...)
+      // before(...) / after(...)
       if (/^(before|after)\(.+\)$/.test(line)) {
         const isBefore = line.startsWith('before(');
         const isAfter = line.startsWith('after(');
@@ -265,7 +257,7 @@ function parseBlocksExtended(
           props,
         };
       }
-    } // end for lines
+    }
 
     result[className] = block;
   }
@@ -273,7 +265,7 @@ function parseBlocksExtended(
   return result;
 }
 
-/** buildLineHover: ให้ Hover ตรง rawLine แล้วได้ CSS text */
+/** buildLineHover: ใส่ ";" ต่อท้าย property */
 function buildLineHover(info: IHoverInfo): vscode.Hover {
   const { type, className, props, query, stateName } = info;
 
@@ -282,14 +274,15 @@ function buildLineHover(info: IHoverInfo): vscode.Hover {
       if (!props) return new vscode.Hover('');
       const entries = Object.entries(props);
       if (!entries.length) return new vscode.Hover('');
+      // สมมติใส่เฉพาะอันแรก
       const [k, v] = entries[0];
-      return new vscode.Hover({ language: 'css', value: `${k}: ${v}` });
+      return new vscode.Hover({ language: 'css', value: `${k}: ${v};` });
     }
     case 'state': {
-      // e.g. .box:hover { ... }
+      // .box:hover {
       let lines = `${className}:${stateName} {\n`;
       for (const k of Object.keys(props ?? {})) {
-        lines += `  ${k}: ${props![k]}\n`;
+        lines += `  ${k}: ${props![k]};\n`;
       }
       lines += `}`;
       return new vscode.Hover({ language: 'css', value: lines });
@@ -297,7 +290,7 @@ function buildLineHover(info: IHoverInfo): vscode.Hover {
     case 'screen': {
       let lines = `@media only screen and ${query} {\n  ${className} {\n`;
       for (const k of Object.keys(props ?? {})) {
-        lines += `    ${k}: ${props![k]}\n`;
+        lines += `    ${k}: ${props![k]};\n`;
       }
       lines += `  }\n}`;
       return new vscode.Hover({ language: 'css', value: lines });
@@ -305,7 +298,7 @@ function buildLineHover(info: IHoverInfo): vscode.Hover {
     case 'container': {
       let lines = `@container ${query} {\n  ${className} {\n`;
       for (const k of Object.keys(props ?? {})) {
-        lines += `    ${k}: ${props![k]}\n`;
+        lines += `    ${k}: ${props![k]};\n`;
       }
       lines += `  }\n}`;
       return new vscode.Hover({ language: 'css', value: lines });
@@ -313,7 +306,7 @@ function buildLineHover(info: IHoverInfo): vscode.Hover {
     case 'before': {
       let lines = `${className}::before {\n`;
       for (const k of Object.keys(props ?? {})) {
-        lines += `  ${k}: ${props![k]}\n`;
+        lines += `  ${k}: ${props![k]};\n`;
       }
       lines += `}`;
       return new vscode.Hover({ language: 'css', value: lines });
@@ -321,7 +314,7 @@ function buildLineHover(info: IHoverInfo): vscode.Hover {
     case 'after': {
       let lines = `${className}::after {\n`;
       for (const k of Object.keys(props ?? {})) {
-        lines += `  ${k}: ${props![k]}\n`;
+        lines += `  ${k}: ${props![k]};\n`;
       }
       lines += `}`;
       return new vscode.Hover({ language: 'css', value: lines });
@@ -330,11 +323,11 @@ function buildLineHover(info: IHoverInfo): vscode.Hover {
   return new vscode.Hover('');
 }
 
-/** buildClassHover: เวลา hover ที่ .box => รวม base, states, screen, container, pseudoBefore/After */
+/** buildClassHover: ตอน hover .box => ใส่ ";" ท้าย property */
 function buildClassHover(className: string, block: IClassBlock): vscode.Hover {
   let lines = `${className} {\n`;
   for (const k of Object.keys(block.base)) {
-    lines += `  ${k}: ${block.base[k]}\n`;
+    lines += `  ${k}: ${block.base[k]};\n`;
   }
   lines += `}`;
 
@@ -343,7 +336,7 @@ function buildClassHover(className: string, block: IClassBlock): vscode.Hover {
     lines += `\n${className}:${stName} {\n`;
     const stProps = block.states[stName];
     for (const k of Object.keys(stProps)) {
-      lines += `  ${k}: ${stProps[k]}\n`;
+      lines += `  ${k}: ${stProps[k]};\n`;
     }
     lines += `}`;
   }
@@ -353,7 +346,7 @@ function buildClassHover(className: string, block: IClassBlock): vscode.Hover {
     for (const sc of block.screens) {
       lines += `\n@media only screen and ${sc.query} {\n  ${className} {\n`;
       for (const k of Object.keys(sc.props)) {
-        lines += `    ${k}: ${sc.props[k]}\n`;
+        lines += `    ${k}: ${sc.props[k]};\n`;
       }
       lines += `  }\n}`;
     }
@@ -364,7 +357,7 @@ function buildClassHover(className: string, block: IClassBlock): vscode.Hover {
     for (const c of block.container) {
       lines += `\n@container ${c.query} {\n  ${className} {\n`;
       for (const k of Object.keys(c.props)) {
-        lines += `    ${k}: ${c.props[k]}\n`;
+        lines += `    ${k}: ${c.props[k]};\n`;
       }
       lines += `  }\n}`;
     }
@@ -374,7 +367,7 @@ function buildClassHover(className: string, block: IClassBlock): vscode.Hover {
   if (block.pseudoBefore) {
     lines += `\n${className}::before {\n`;
     for (const k of Object.keys(block.pseudoBefore)) {
-      lines += `  ${k}: ${block.pseudoBefore[k]}\n`;
+      lines += `  ${k}: ${block.pseudoBefore[k]};\n`;
     }
     lines += `}`;
   }
@@ -382,7 +375,7 @@ function buildClassHover(className: string, block: IClassBlock): vscode.Hover {
   if (block.pseudoAfter) {
     lines += `\n${className}::after {\n`;
     for (const k of Object.keys(block.pseudoAfter)) {
-      lines += `  ${k}: ${block.pseudoAfter[k]}\n`;
+      lines += `  ${k}: ${block.pseudoAfter[k]};\n`;
     }
     lines += `}`;
   }
@@ -392,12 +385,11 @@ function buildClassHover(className: string, block: IClassBlock): vscode.Hover {
 
 /** MAIN EXTENSION */
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('Styledwind Intellisense is now active (final)');
+  console.log('Styledwind Intellisense is now active (final w/ semicolons)');
 
   let paletteColors: string[] = [];
   let screenDict: Record<string, string> = {};
 
-  // ค้นหา styledwind.theme.ts
   if (vscode.workspace.workspaceFolders?.length) {
     try {
       const foundUris = await vscode.workspace.findFiles(
@@ -495,13 +487,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const range = document.getWordRangeAtPosition(
           position,
-          // .class, state(...) => hover(...), active(...), screen(...), container(...), before(...), after(...), abbr[value]
           /(\.\w+)|(hover\(.+\))|(active\(.+\))|(focus\(.+\))|(focus-visible\(.+\))|(focus-within\(.+\))|(screen\(.+\))|(container\(.+\))|((before|after)\(.+\))|(\w+\[[^\]]+\])/
         );
         if (!range) return;
         const hoveredText = document.getText(range);
 
-        // ใช้ Object.keys แทน for..in
         for (const className of Object.keys(blocks)) {
           const block = blocks[className];
           const lineInfo = block.linesMap[hoveredText];
@@ -510,7 +500,6 @@ export async function activate(context: vscode.ExtensionContext) {
           }
         }
 
-        // ถ้าไม่เจอ lineInfo => เช็คว่าเป็น .className หรือไม่
         if (hoveredText.startsWith('.')) {
           const block = blocks[hoveredText];
           if (block) {
