@@ -6,16 +6,26 @@
   "engines": {
     "vscode": "^1.80.0"
   },
-  "categories": [
-    "Other"
-  ],
   "activationEvents": [
     "onLanguage:typescript",
     "onLanguage:typescriptreact"
   ],
   "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Styledwind Intellisense Settings",
+      "properties": {
+        "styledwindIntellisense.themeFile": {
+          "type": "string",
+          "default": "styledwind.theme.ts",
+          "description": "Relative path to your styledwind.theme.ts"
+        }
+      }
+    }
+  },
   "scripts": {
-    "compile": "tsc -p ./"
+    "compile": "tsc -p ."
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
