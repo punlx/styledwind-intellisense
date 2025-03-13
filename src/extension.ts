@@ -1,17 +1,22 @@
 // extension.ts
-import * as vscode from 'vscode';
-import { parseThemePaletteFile, parseThemeScreenDict } from './parseTheme';
+
+import * as vscode from 'vscode'; // <<--- สำคัญสำหรับการใช้ vscode namespace
+
+import { parseThemePaletteFull, parseThemeScreenDict } from './parseTheme';
 import { createBracketProvider, createDashProvider } from './suggestProviders';
+
+// อย่าลืม import createHoverProvider
 import { createHoverProvider } from './hoverProvider';
+
+// อย่าลืม import createReversePropertyProvider
 import { createReversePropertyProvider } from './reversePropertyProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
 
-  let paletteColors: string[] = [];
+  let paletteColors: Record<string, Record<string, string>> = {};
   let screenDict: Record<string, string> = {};
 
-  // 1) ค้นหา styledwind.theme.ts ใน workspace (ถ้ามี)
   if (vscode.workspace.workspaceFolders?.length) {
     try {
       const foundUris = await vscode.workspace.findFiles(
@@ -21,7 +26,9 @@ export async function activate(context: vscode.ExtensionContext) {
       );
       if (foundUris.length > 0) {
         const themeFilePath = foundUris[0].fsPath;
-        paletteColors = parseThemePaletteFile(themeFilePath);
+
+        // ใช้ parseThemePaletteFull เพื่อให้ได้ object สำหรับจัดการสี
+        paletteColors = parseThemePaletteFull(themeFilePath);
         screenDict = parseThemeScreenDict(themeFilePath);
       }
     } catch (err) {
@@ -29,13 +36,11 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  // 2) สร้าง providers ต่าง ๆ
-  const bracketProvider = createBracketProvider(); // สำหรับ abbr[...]
-  const dashProvider = createDashProvider(paletteColors); // สำหรับ abbr[...] + -- (color var)
-  const hoverProvider = createHoverProvider(screenDict); // สำหรับ hover ขึ้น style
-  const reversePropProvider = createReversePropertyProvider(); // สำหรับ suggest property-name => abbr
+  const bracketProvider = createBracketProvider();
+  const dashProvider = createDashProvider(paletteColors);
+  const hoverProvider = createHoverProvider(screenDict);
+  const reversePropProvider = createReversePropertyProvider();
 
-  // 3) ลงทะเบียน
   context.subscriptions.push(bracketProvider, dashProvider, hoverProvider, reversePropProvider);
 }
 
