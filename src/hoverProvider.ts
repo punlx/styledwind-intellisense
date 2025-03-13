@@ -45,14 +45,20 @@ function convertScreenOrBreakpoint(token: string, screenDict: Record<string, str
  * แยก .classname { ... } ออกเป็น IClassBlock (base, states, screens, container, pseudoBefore/After)
  * พร้อม linesMap สำหรับ line => IHoverInfo
  */
-function parseBlocksExtended(
+/**
+ * parseBlocksExtended:
+ * แยก .classname { ... } ออกเป็น IClassBlock (base, states, screens, container, pseudoBefore/After)
+ * พร้อม linesMap สำหรับ line => IHoverInfo
+ */
+export function parseBlocksExtended(
   docText: string,
   screenDict: Record<string, string>
 ): Record<string, IClassBlock> {
   const result: Record<string, IClassBlock> = {};
-  const blockRegex = /\.([\w-]+)\s*\{([^}]+)\}/g;
 
+  const blockRegex = /\.([\w-]+)\s*\{([^}]+)\}/g; // จับ .classname { ... }
   let match: RegExpExecArray | null;
+
   while ((match = blockRegex.exec(docText)) !== null) {
     const className = '.' + match[1];
     const inside = match[2].trim();
@@ -68,11 +74,13 @@ function parseBlocksExtended(
     };
 
     for (const line of lines) {
-      // 1) base e.g. c[yellow], bg[--blue-100]
-      let m = /^(\w+)\[([^\]]+)\]$/.exec(line);
-      if (m) {
-        const ab = m[1];
-        let val = m[2];
+      // (1) base (บรรทัดเดียว)
+      //    เช่น bg[red], c[#000], bg-pos[center 50%]
+      //    เดิมใช้ /^(\w+)\[([^\]]+)\]\s*$/ => ต้องแก้ให้รองรับ dash ใน abbr
+      const singleAbbrMatch = /^([\w-]+)\[([^\]]+)\]\s*$/.exec(line);
+      if (singleAbbrMatch) {
+        const ab = singleAbbrMatch[1]; // เช่น 'bg-pos'
+        let val = singleAbbrMatch[2];
         val = convertCSSVariable(val);
         const cssProp = abbrMap[ab];
         if (cssProp) {
@@ -87,23 +95,26 @@ function parseBlocksExtended(
         continue;
       }
 
-      // 2) states: hover|active|focus|focus-visible|focus-within
+      // (2) states: hover|active|focus|focus-visible|focus-within
       const stateRegex = /^(hover|active|focus|focus-visible|focus-within)\(.+\)$/;
       if (stateRegex.test(line)) {
         const mm = stateRegex.exec(line);
         if (mm) {
           const stName = mm[1];
           const inner = line.replace(new RegExp(`^${stName}\\(|\\)$`, 'g'), '').trim();
-          const splitted = inner.split(/\s+/);
+          // เปลี่ยนจาก (\w+) เป็น ([\w-]+)
+          const splitted = inner.match(/([\w-]+\[[^\]]+\])/g) || [];
           const props: Record<string, string> = {};
           for (const sp of splitted) {
-            const mm2 = /^(\w+)\[([^\]]+)\]$/.exec(sp);
+            const mm2 = /^([\w-]+)\[([^\]]+)\]$/.exec(sp);
             if (mm2) {
               const ab = mm2[1];
               let val = mm2[2];
               val = convertCSSVariable(val);
               const cssProp = abbrMap[ab];
-              if (cssProp) props[cssProp] = val;
+              if (cssProp) {
+                props[cssProp] = val;
+              }
             }
           }
           block.states[stName] = props;
@@ -118,28 +129,38 @@ function parseBlocksExtended(
         }
       }
 
-      // 3) screen(...)
+      // (3) screen(...)
       if (/^screen\(.+\)$/.test(line)) {
-        if (!block.screens) block.screens = [];
+        if (!block.screens) {
+          block.screens = [];
+        }
         const inner = line.replace(/^screen\(|\)$/g, '').trim();
         const [queryPart, stylePart] = inner.split(',').map((x) => x.trim());
-        if (!queryPart || !stylePart) continue;
+        if (!queryPart || !stylePart) {
+          continue;
+        }
 
         const mediaQuery = convertScreenOrBreakpoint(queryPart, screenDict);
-        if (!mediaQuery) continue;
+        if (!mediaQuery) {
+          continue;
+        }
 
-        const splitted = stylePart.split(/\s+/);
+        // เปลี่ยนจาก (\w+) เป็น ([\w-]+)
+        const splitted = stylePart.match(/([\w-]+\[[^\]]+\])/g) || [];
         const props: Record<string, string> = {};
         for (const sp of splitted) {
-          const mm2 = /^(\w+)\[([^\]]+)\]$/.exec(sp);
+          const mm2 = /^([\w-]+)\[([^\]]+)\]$/.exec(sp);
           if (mm2) {
             const ab = mm2[1];
             let val = mm2[2];
             val = convertCSSVariable(val);
             const cssProp = abbrMap[ab];
-            if (cssProp) props[cssProp] = val;
+            if (cssProp) {
+              props[cssProp] = val;
+            }
           }
         }
+
         block.screens.push({ query: mediaQuery, props });
         block.linesMap[line] = {
           type: 'screen',
@@ -151,26 +172,35 @@ function parseBlocksExtended(
         continue;
       }
 
-      // 4) container(...)
+      // (4) container(...)
       if (/^container\(.+\)$/.test(line)) {
-        if (!block.container) block.container = [];
+        if (!block.container) {
+          block.container = [];
+        }
         const inner = line.replace(/^container\(|\)$/g, '').trim();
         const [queryPart, stylePart] = inner.split(',').map((x) => x.trim());
-        if (!queryPart || !stylePart) continue;
+        if (!queryPart || !stylePart) {
+          continue;
+        }
 
-        let containerQuery = convertScreenOrBreakpoint(queryPart, screenDict);
-        const splitted = stylePart.split(/\s+/);
+        const containerQuery = convertScreenOrBreakpoint(queryPart, screenDict);
+
+        // เปลี่ยนจาก (\w+) เป็น ([\w-]+)
+        const splitted = stylePart.match(/([\w-]+\[[^\]]+\])/g) || [];
         const props: Record<string, string> = {};
         for (const sp of splitted) {
-          const mm3 = /^(\w+)\[([^\]]+)\]$/.exec(sp);
+          const mm3 = /^([\w-]+)\[([^\]]+)\]$/.exec(sp);
           if (mm3) {
             const ab = mm3[1];
             let val = mm3[2];
             val = convertCSSVariable(val);
             const cssProp = abbrMap[ab];
-            if (cssProp) props[cssProp] = val;
+            if (cssProp) {
+              props[cssProp] = val;
+            }
           }
         }
+
         block.container.push({ query: containerQuery, props });
         block.linesMap[line] = {
           type: 'container',
@@ -182,25 +212,32 @@ function parseBlocksExtended(
         continue;
       }
 
-      // 5) before(...) / after(...)
+      // (5) before(...) / after(...)
       if (/^(before|after)\(.+\)$/.test(line)) {
         const isBefore = line.startsWith('before(');
-        const isAfter = line.startsWith('after(');
         const inner = line.replace(/^(before|after)\(|\)$/g, '').trim();
-        const splitted = inner.split(/\s+/);
+        // เปลี่ยนจาก (\w+) เป็น ([\w-]+)
+        const splitted = inner.match(/([\w-]+\[[^\]]+\])/g) || [];
         const props: Record<string, string> = {};
+
         for (const sp of splitted) {
-          const mm4 = /^(\w+)\[([^\]]+)\]$/.exec(sp);
+          const mm4 = /^([\w-]+)\[([^\]]+)\]$/.exec(sp);
           if (mm4) {
             const ab = mm4[1];
             let val = mm4[2];
             val = convertCSSVariable(val);
             const cssProp = abbrMap[ab];
-            if (cssProp) props[cssProp] = val;
+            if (cssProp) {
+              props[cssProp] = val;
+            }
           }
         }
-        if (isBefore) block.pseudoBefore = props;
-        if (isAfter) block.pseudoAfter = props;
+
+        if (isBefore) {
+          block.pseudoBefore = props;
+        } else {
+          block.pseudoAfter = props;
+        }
 
         block.linesMap[line] = {
           type: isBefore ? 'before' : 'after',
@@ -208,6 +245,36 @@ function parseBlocksExtended(
           rawLine: line,
           props,
         };
+        continue;
+      }
+
+      // (6) fallback base
+      const splitted = line.match(/([\w-]+\[[^\]]+\])/g) || [];
+      if (splitted.length) {
+        const propsBase: Record<string, string> = {};
+
+        for (const sp of splitted) {
+          const mm2 = /^([\w-]+)\[([^\]]+)\]$/.exec(sp);
+          if (mm2) {
+            const ab = mm2[1];
+            let val = mm2[2];
+            val = convertCSSVariable(val);
+            const cssProp = abbrMap[ab];
+            if (cssProp) {
+              propsBase[cssProp] = val;
+            }
+          }
+        }
+
+        if (Object.keys(propsBase).length) {
+          Object.assign(block.base, propsBase);
+          block.linesMap[line] = {
+            type: 'base',
+            className,
+            rawLine: line,
+            props: propsBase,
+          };
+        }
       }
     }
 
@@ -216,7 +283,6 @@ function parseBlocksExtended(
 
   return result;
 }
-
 /** buildLineHover: สร้าง hover สำหรับ abbr[value], screen(...), container(...), etc. */
 function buildLineHover(info: IHoverInfo): vscode.Hover {
   const { type, className, props, query, stateName } = info;
@@ -361,17 +427,21 @@ export function createHoverProvider(screenDict: Record<string, string>) {
       provideHover(document, position) {
         if (!document.fileName.endsWith('.css.ts')) return;
 
+        // parse ทั้งไฟล์
         const docText = document.getText();
+        // parseBlocksExtended คือฟังก์ชันที่เราแก้ให้รองรับ dash ใน abbr แล้ว
         const blocks = parseBlocksExtended(docText, screenDict);
 
+        // แก้ regex ตรงนี้เป็น [\w-] เพื่อจับ abbr ที่มี dash
         const range = document.getWordRangeAtPosition(
           position,
-          /(\.\w+)|(hover\(.+\))|(active\(.+\))|(focus\(.+\))|(focus-visible\(.+\))|(focus-within\(.+\))|(screen\(.+\))|(container\(.+\))|((before|after)\(.+\))|(\w+\[[^\]]+\])/
+          /(\.[\w-]+)|(hover\(.+\))|(active\(.+\))|(focus\(.+\))|(focus-visible\(.+\))|(focus-within\(.+\))|(screen\(.+\))|(container\(.+\))|((before|after)\(.+\))|([\w-]+\[[^\]]+\])/
         );
         if (!range) return;
+
         const hoveredText = document.getText(range);
 
-        // หา line
+        // 1) เช็กใน linesMap แต่ละ block ว่าตรง text นั้นไหม
         for (const className of Object.keys(blocks)) {
           const block = blocks[className];
           const lineInfo = block.linesMap[hoveredText];
@@ -380,7 +450,8 @@ export function createHoverProvider(screenDict: Record<string, string>) {
           }
         }
 
-        // ถ้าชี้ ".box" => buildClassHover
+        // 2) ถ้าไม่เจอ line ใด ๆ แต่เป็นชื่อ .class (เช่น ".box")
+        //    ก็แสดง hover style ของทั้ง class
         if (hoveredText.startsWith('.')) {
           const block = blocks[hoveredText];
           if (block) {
