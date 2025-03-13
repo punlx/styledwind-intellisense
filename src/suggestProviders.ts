@@ -108,12 +108,12 @@ export function createDashProvider(paletteMap: Record<string, Record<string, str
           } else {
             // กรณีไม่เจอ comment mode -> ไม่ต้องโชว์ swatch
             // ใช้ itemKind อย่างอื่น และใส่ไอคอน $(paintcan) ไว้ใน label แทน
-            itemKind = vscode.CompletionItemKind.Value;
+            itemKind = vscode.CompletionItemKind.Color;
           }
 
           // ตั้ง label, insertText ตามต้องการ
           const item = new vscode.CompletionItem(colorName, itemKind);
-          item.insertText = colorName.startsWith('--') ? colorName : `--${colorName}`;
+          item.insertText = colorName;
 
           // ถ้าไม่มี mode -> prefix ไอคอนจานสีใน label
           if (!mode) {
@@ -139,5 +139,39 @@ export function createDashProvider(paletteMap: Record<string, Record<string, str
       },
     },
     '-' // trigger character
+  );
+}
+export function createDashProvider2(paletteColors: string[]) {
+  return vscode.languages.registerCompletionItemProvider(
+    [
+      { language: 'typescript', scheme: 'file' },
+      { language: 'typescriptreact', scheme: 'file' },
+    ],
+    {
+      provideCompletionItems(document, position) {
+        if (!document.fileName.endsWith('.css.ts')) return;
+
+        const lineText = document.lineAt(position).text;
+        const textBeforeCursor = lineText.substring(0, position.character);
+
+        const match = /(\w+)\[.*?--$/.exec(textBeforeCursor);
+        if (!match) return;
+        if (!paletteColors.length) return;
+
+        return paletteColors.map((colorVar) => {
+          const item = new vscode.CompletionItem(colorVar, vscode.CompletionItemKind.Color);
+          item.detail = 'Color from styledwind.theme.ts';
+          item.insertText = colorVar;
+
+          // ทับ "--" สองตัวท้าย
+          const replaceStart = position.translate(0, -2);
+          const replaceRange = new vscode.Range(replaceStart, position);
+          item.range = replaceRange;
+
+          return item;
+        });
+      },
+    },
+    '-'
   );
 }

@@ -2,49 +2,6 @@
 import * as fs from 'fs';
 
 /**
- * parseThemePaletteFile:
- *  - หา theme.palette([...]) ในไฟล์
- *  - ดู column แรก (ยกเว้นแถวแรก) => ['blue-100', '#E3F2FD', ...]
- *  - คืน array เป็น ["--blue-100", "--blue-200", ...]
- *    (ใช้เพื่อรองรับของเดิมที่มีอยู่)
- */
-export function parseThemePaletteFile(themeFilePath: string): string[] {
-  if (!fs.existsSync(themeFilePath)) return [];
-  const content = fs.readFileSync(themeFilePath, 'utf8');
-
-  // จับ pattern theme.palette([...])
-  const mainRegex = /theme\.palette\s*\(\s*\[(?<inside>[\s\S]*?)\]\s*\)/m;
-  const match = mainRegex.exec(content);
-  if (!match?.groups?.inside) return [];
-
-  const inside = match.groups.inside;
-  const lines = inside.split('\n');
-
-  const result: string[] = [];
-  let skipFirstRow = true;
-
-  for (let line of lines) {
-    line = line.trim();
-    // ข้ามบรรทัดที่ไม่เริ่มด้วย '['
-    if (!line.startsWith('[')) continue;
-
-    // บรรทัดแรกคือ header เช่น ['dark','light','dim'] => skip
-    if (skipFirstRow) {
-      skipFirstRow = false;
-      continue;
-    }
-
-    // regex จับค่าตัวแรกของ array เช่น ['blue-100', '#E3F2FD', ...]
-    const rowMatch = /^\[\s*['"]([^'"]+)['"]/.exec(line);
-    if (rowMatch) {
-      const colorName = rowMatch[1];
-      result.push(`--${colorName}`);
-    }
-  }
-  return result;
-}
-
-/**
  * parseThemePaletteFull:
  *  - หา theme.palette([...]) ในไฟล์
  *  - ดึงแถวแรกเป็น header: ['dark','light','dim']
