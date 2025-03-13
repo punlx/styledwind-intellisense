@@ -2,7 +2,7 @@
   "name": "styledwind-intellisense",
   "displayName": "Styledwind Intellisense",
   "description": "VSCode Intellisense (Autocompletion) for *.css.ts files in Styledwind",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "publisher": "punlx",
   "engines": {
     "vscode": "^1.80.0"
@@ -37,5 +37,6 @@
     "@types/vscode": "^1.80.0",
     "typescript": "^5.0.2",
     "vsce": "^2.x"
-  }
+  },
+  "icon": "icon.png"
 }
