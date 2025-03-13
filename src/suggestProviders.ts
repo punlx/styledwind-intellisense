@@ -76,58 +76,61 @@ export function createDashProvider(paletteMap: Record<string, Record<string, str
         const lineText = document.lineAt(position).text;
         const textBeforeCursor = lineText.substring(0, position.character);
 
-        // จับ pattern (\w+)\[.*?--$ => เช่น bg[--, c[--, เพื่อตรวจว่ากำลังพิมพ์ "--"
+        // จับ pattern (\w+)\[.*?--$ => เช่น bg[--, c[-- เพื่อเช็คว่ากำลังพิมพ์ "--"
         const match = /(\w+)\[.*?--$/.exec(textBeforeCursor);
         if (!match) {
           return;
         }
 
-        // 1) Parse คอมเมนต์ในไฟล์ .css.ts => หา mode
-        //   เช่น // styledwind intellisense (mode: dark)
-        const docText = document.getText();
+        // 1) ตรวจว่ามี comment // styledwind intellisense (mode: xxx) หรือไม่
         let mode: string | undefined;
+        const docText = document.getText();
         const modeRegex = /\/\/\s*styledwind intellisense\s*\(mode:\s*(\w+)\)/;
         const modeMatch = modeRegex.exec(docText);
         if (modeMatch) {
           mode = modeMatch[1]; // e.g. "dark"
         }
 
-        // 2) ถ้าไม่มี mode ไม่ต้องการแสดง swatch (จะไม่ขึ้นเป็นสี)
-        //    เราจะไม่ใช้ CompletionItemKind.Color เพื่อไม่ให้เกิด swatch
-        const itemKindWhenNoMode = vscode.CompletionItemKind.Value;
-        // หรือถ้าต้องการ “ไม่โชว์ suggestion เลย” ให้ return ทันที
-        // if (!mode) return;
-
-        // สร้าง CompletionItem สำหรับแต่ละ "colorName" ใน paletteMap
+        // 2) สร้าง CompletionItem ให้ทุก colorName
         const completions: vscode.CompletionItem[] = [];
 
         for (const colorName of Object.keys(paletteMap)) {
-          // colorName: "blue-100"
-          // สร้าง CompletionItem
-          // ถ้าพบ mode => ใช้เป็น Color เพื่อให้มี swatch
-          // ถ้าไม่พบ mode => ใช้ Value/Variable แทน เพื่อ “ไม่ให้” แสดง swatch
-          const itemKind = mode ? vscode.CompletionItemKind.Color : itemKindWhenNoMode;
-
-          const item = new vscode.CompletionItem(colorName, itemKind);
-          // เวลา user กดเลือก -> แทรก "--blue-100"
-          item.insertText = `${colorName}`;
-
-          // ถ้ามี mode จึงค่อยแสดงสีจริง ๆ
-          // ถ้าไม่มี mode จะเป็น #CCCCCC หรือจะไม่ใส่ detail เลยก็ได้
+          // สร้าง item แต่ละสี
+          // ปกติเราจะ set kind = CompletionItemKind.Color เพื่อให้มีแถบ swatch
+          // แต่ถ้าไม่มี mode -> ไม่ต้องโชว์เป็น swatch ให้โชว์เป็น "ไอคอน + ตัวหนังสือ" แทน
+          let itemKind = vscode.CompletionItemKind.Color;
           let colorHex = '#CCCCCC';
+
           if (mode && paletteMap[colorName] && paletteMap[colorName][mode]) {
+            // กรณีเจอโหมด -> ใช้สีจริง แสดง swatch
             colorHex = paletteMap[colorName][mode];
+            itemKind = vscode.CompletionItemKind.Color;
+          } else {
+            // กรณีไม่เจอ comment mode -> ไม่ต้องโชว์ swatch
+            // ใช้ itemKind อย่างอื่น และใส่ไอคอน $(paintcan) ไว้ใน label แทน
+            itemKind = vscode.CompletionItemKind.Value;
           }
 
-          // detail/documentation
-          item.detail = mode ? colorHex : `No mode found, swatch disabled`;
+          // ตั้ง label, insertText ตามต้องการ
+          const item = new vscode.CompletionItem(colorName, itemKind);
+          item.insertText = colorName.startsWith('--') ? colorName : `--${colorName}`;
 
-          // จะใส่ doc เพิ่มหรือไม่ก็ได้
-          item.documentation = new vscode.MarkdownString(
-            `**Color name**: \`${colorName}\`\n\n` +
-              `**Mode**: \`${mode || '-'}\`\n\n` +
-              `**Hex**: \`${colorHex}\``
-          );
+          // ถ้าไม่มี mode -> prefix ไอคอนจานสีใน label
+          if (!mode) {
+            item.label = colorName;
+            // จะไม่เซ็ต detail เป็น HEX เพื่อไม่ให้ VSCode โชว์ swatch
+            // (VSCode บางรุ่นจะพยายาม render color swatch ถ้า detail เป็นสี)
+          } else {
+            // มี mode -> เป็น swatch ได้
+            // แสดงค่าตัวจริงใน detail (VSCode จะทำเป็น square color)
+            item.detail = colorHex;
+            // ใส่ doc เพิ่มเพื่อบอกสีนี้เป็นของ mode ไหน
+            item.documentation = new vscode.MarkdownString(
+              `**Color name**: \`${colorName}\`  \n` +
+                `**Mode**: \`${mode}\`  \n` +
+                `**Hex**: \`${colorHex}\``
+            );
+          }
 
           completions.push(item);
         }
