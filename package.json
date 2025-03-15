@@ -23,7 +23,17 @@
           "description": "Relative path to your styledwind.theme.ts"
         }
       }
-    }
+    },
+    "grammars": [
+      {
+        "scopeName": "source.css.styledwind",
+        "path": "./syntaxes/styledwind.tmLanguage.json",
+        "injectTo": [
+          "source.ts",
+          "source.tsx"
+        ]
+      }
+    ]
   },
   "repository": {
     "type": "git",

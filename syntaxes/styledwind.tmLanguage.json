@@ -1,0 +1,53 @@
+{
+  "name": "Styledwind CSS inside TS template",
+  "scopeName": "source.css.styledwind",
+  "injectionSelector": "L:source.ts, L:source.tsx",
+  "patterns": [
+    {
+      "name": "styledwind.template",
+      "begin": "(styled)(\\s*<[^>]*>)?(\\s*`)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.styledwind.ts"
+        },
+        "2": {
+          "name": "meta.typeparameters.styledwind.ts"
+        },
+        "3": {
+          "name": "punctuation.definition.template-expression.begin.ts"
+        }
+      },
+      "end": "`",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.template-expression.end.ts"
+        }
+      },
+      "patterns": [
+        {
+          "name": "styledwind.interpolation",
+          "begin": "\\$\\{",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.interpolation.begin.ts"
+            }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.interpolation.end.ts"
+            }
+          },
+          "patterns": [
+            {
+              "include": "source.ts"
+            }
+          ]
+        },
+        {
+          "include": "source.css"
+        }
+      ]
+    }
+  ]
+}
