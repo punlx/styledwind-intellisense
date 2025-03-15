@@ -4,6 +4,11 @@
   "injectionSelector": "L:source.ts, L:source.tsx",
   "patterns": [
     {
+      "name": "support.function.misc.css",
+      "match": "(--[\\w\\d-]+)"
+    },
+
+    {
       "name": "styledwind.template",
       "begin": "(styled)(\\s*<[^>]*>)?(\\s*`)",
       "beginCaptures": {
@@ -48,6 +53,30 @@
           "include": "source.css"
         }
       ]
+    },
+    {
+      "name": "support.type.property-name.css",
+      "match": "([\\w-]+)\\s*\\["
+    },
+    {
+      "name": "variable.other.constant.object.ts",
+      "match": "\\$(([\\w-]+)\\s*\\[)"
+    },
+    {
+      "name": "entity.other.attribute-name.class.css",
+      "match": "(hover|focus|focus-visible|focus-within|target|active|before|after)"
+    },
+    {
+      "name": "keyword.control.at-rule.media.css",
+      "match": "(screen|container)"
+    },
+    {
+      "name": "keyword.other.unit.px.css",
+      "match": "(\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr))"
+    },
+    {
+      "name": "support.constant.property-value.css",
+      "match": "(?<=(\\[)|(\\[\\$[\\w-]+)\\s)[\\(\\,\\)\\w\\%\\d\\s\\+\\*/,.-]+"
     }
   ]
 }
