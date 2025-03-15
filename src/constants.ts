@@ -1,354 +1,868 @@
 export const cssValues: Record<string, string[]> = {
-  // --------------------------------------------------------------------------------
-  // กลุ่มที่มีอยู่เดิม
-  // --------------------------------------------------------------------------------
-  'justify-content': ['flex-start', 'flex-end', 'center', 'space-between', 'space-around'],
-  'align-items': ['flex-start', 'flex-end', 'center', 'stretch'],
-  'align-self': ['auto', 'flex-start', 'flex-end', 'center', 'stretch'],
-  'align-content': ['flex-start', 'flex-end', 'center', 'space-between', 'space-around', 'stretch'],
-  'flex-wrap': ['nowrap', 'wrap', 'wrap-reverse'],
-  'flex-direction': ['row', 'row-reverse', 'column', 'column-reverse'],
-  'flex-flow': ['row nowrap', 'row wrap', 'column nowrap', 'column wrap'],
+  /********************************************
+   * Alignment, Box, and Display
+   ********************************************/
+  'align-content': [
+    'flex-start',
+    'flex-end',
+    'center',
+    'space-between',
+    'space-around',
+    'space-evenly',
+    'stretch',
+    'start',
+    'end',
+    'baseline',
+    'first baseline',
+    'last baseline',
+    'safe center',
+    'unsafe center',
+    'normal',
+  ],
+  'align-items': [
+    'normal',
+    'stretch',
+    'baseline',
+    'first baseline',
+    'last baseline',
+    'center',
+    'start',
+    'end',
+    'flex-start',
+    'flex-end',
+    'self-start',
+    'self-end',
+    'safe center',
+    'unsafe center',
+  ],
+  'align-self': [
+    'auto',
+    'normal',
+    'stretch',
+    'baseline',
+    'first baseline',
+    'last baseline',
+    'center',
+    'start',
+    'end',
+    'self-start',
+    'self-end',
+    'flex-start',
+    'flex-end',
+    'safe center',
+    'unsafe center',
+  ],
   display: [
-    'block',
     'inline',
+    'block',
     'inline-block',
-    'flex',
-    'grid',
     'inline-flex',
     'inline-grid',
+    'flex',
+    'grid',
+    'flow-root',
+    'table',
+    'table-row',
+    'table-cell',
+    'list-item',
     'none',
+    'contents',
+    // อื่น ๆ ตามสเปค เช่น 'run-in', 'ruby', ...
   ],
-  cursor: ['auto', 'default', 'pointer', 'wait', 'text', 'move', 'not-allowed', 'grab', 'grabbing'],
-  'box-sizing': ['content-box', 'border-box'],
-  overflow: ['visible', 'hidden', 'scroll', 'auto'],
-  'overflow-x': ['visible', 'hidden', 'scroll', 'auto'],
-  'overflow-y': ['visible', 'hidden', 'scroll', 'auto'],
-  position: ['static', 'relative', 'absolute', 'fixed', 'sticky'],
-  'text-align': ['left', 'right', 'center', 'justify'],
-  'text-decoration': ['none', 'underline', 'overline', 'line-through'],
-  'text-indent': ['0px', '10px', '20px', '30px'],
-  'text-justify': ['auto', 'inter-word', 'inter-character', 'none'],
-  'text-overflow': ['clip', 'ellipsis'],
-  'text-transform': ['none', 'capitalize', 'uppercase', 'lowercase'],
-  'white-space': ['normal', 'nowrap', 'pre', 'pre-wrap', 'pre-line'],
-  'word-break': ['normal', 'break-all', 'keep-all', 'break-word'],
-  'user-select': ['none', 'text', 'all', 'auto'],
-  'z-index': ['auto', 'inherit', 'initial', 'unset'], // ตัวเลขกำหนดเองได้
-  'box-shadow': ['none', '0px 4px 6px rgba(0,0,0,0.1)', 'inset 0px 4px 6px rgba(0,0,0,0.1)'],
-  'column-gap': ['normal', '10px', '20px', '30px'],
-  'row-gap': ['normal', '10px', '20px', '30px'],
-  'grid-auto-flow': ['row', 'column', 'row dense', 'column dense'],
-  'grid-column': ['auto', 'span 2', 'span 3', '1 / -1'],
-  'grid-row': ['auto', 'span 2', 'span 3', '1 / -1'],
-  'grid-template': ['none', 'repeat(3, 1fr)', '100px 200px 300px'],
-  'grid-template-columns': ['none', 'repeat(3, 1fr)', '100px 200px 300px'],
-  'grid-template-rows': ['none', 'repeat(3, 1fr)', '100px 200px 300px'],
-  'grid-template-areas': ['none', '"header header" "sidebar main" "footer footer"'],
-  'list-style': ['none', 'disc', 'circle', 'square'],
-  'list-style-position': ['inside', 'outside'],
-  'list-style-type': ['disc', 'circle', 'square', 'decimal', 'lower-alpha', 'upper-alpha'],
-  'table-layout': ['auto', 'fixed'],
-  'caption-side': ['top', 'bottom'],
-  'scroll-behavior': ['auto', 'smooth'],
-  'scroll-snap-type': ['none', 'mandatory', 'proximity'],
-  'mix-blend-mode': ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten'],
-  isolation: ['auto', 'isolate'],
-  'pointer-events': ['auto', 'none', 'all'],
 
-  // --------------------------------------------------------------------------------
-  // กลุ่มที่เพิ่มเติมจาก abbrMap (ยังไม่เคยมีมาก่อนใน cssValues ด้านบน)
-  // --------------------------------------------------------------------------------
-
-  // Animation
-  animation: ['none', 'fadein 1s ease-in-out', 'spin 0.5s linear infinite'],
-  'animation-delay': ['0s', '1s', '2s', '3s'],
+  /********************************************
+   * Animation
+   ********************************************/
+  animation: [
+    // shorthand มักจะรวมค่า (name duration timing-function delay iteration-count direction fill-mode play-state)
+    // จึงอาจเป็น string ที่ซับซ้อน เช่น "fade-in 1s ease-in-out 0.5s 2 normal forwards running"
+    // ใส่ตัวอย่างคำว่า "fade-in 1s ease" ฯลฯ
+    '<animation-shorthand>',
+  ],
+  'animation-delay': [
+    '<time>', // เช่น "0s", "1s", "500ms"
+  ],
   'animation-direction': ['normal', 'reverse', 'alternate', 'alternate-reverse'],
-  'animation-duration': ['0s', '1s', '2s', '3s'],
+  'animation-duration': [
+    '<time>', // เช่น "1s", "2.5s", "100ms"
+  ],
   'animation-fill-mode': ['none', 'forwards', 'backwards', 'both'],
-  'animation-iteration-count': ['infinite', '1', '2', '3'],
-  'animation-name': ['none', 'slide', 'fadein'],
-  'animation-play-state': ['running', 'paused'],
+  'animation-iteration-count': [
+    'infinite',
+    '<number>', // เช่น "1", "2", "3" ...
+  ],
+  'animation-name': [
+    'none',
+    '<keyframes-name>', // เช่น "fade-in"
+  ],
+  'animation-play-state': ['paused', 'running'],
   'animation-timing-function': [
-    'ease',
     'linear',
+    'ease',
     'ease-in',
     'ease-out',
     'ease-in-out',
     'step-start',
     'step-end',
+    'steps(<number>)',
+    'cubic-bezier(<x1>, <y1>, <x2>, <y2>)',
   ],
 
-  // Appearance
-  appearance: ['auto', 'none', 'textfield', 'button'],
-
-  // Aspect Ratio
-  'aspect-ratio': ['auto', '16/9', '4/3', '1/1'],
-
-  // Backdrop / Filter
-  'backdrop-filter': ['none', 'blur(4px)', 'brightness(0.8)'],
-  'backface-visibility': ['visible', 'hidden'],
-
-  // Background
-  'background-blend-mode': ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten'],
-  'background-clip': ['border-box', 'padding-box', 'content-box', 'text'],
-  'background-color': ['transparent', '#fff', '#000', 'red', 'blue'],
-  'background-origin': ['padding-box', 'border-box', 'content-box'],
-  'background-position': ['left top', 'center center', 'right bottom', '50% 50%'],
+  /********************************************
+   * Background
+   ********************************************/
+  'background-color': ['<color>', 'transparent', 'currentColor', 'inherit', 'initial', 'unset'],
+  'background-position': [
+    'left top',
+    'left center',
+    'left bottom',
+    'center top',
+    'center center',
+    'center bottom',
+    'right top',
+    'right center',
+    'right bottom',
+    '<length> <length>',
+    '<percentage> <percentage>',
+    // หรือ combination อื่น ๆ
+  ],
+  'background-size': [
+    'auto',
+    'cover',
+    'contain',
+    '<length> <length>',
+    '<percentage> <percentage>',
+    // อาจเป็นค่าผสมได้เช่น "auto 50%"
+  ],
   'background-repeat': ['repeat', 'repeat-x', 'repeat-y', 'no-repeat', 'space', 'round'],
-  'background-size': ['auto', 'cover', 'contain', '50% 50%', '100px 100px'],
+  'background-clip': ['border-box', 'padding-box', 'content-box', 'text'],
+  'background-origin': ['border-box', 'padding-box', 'content-box'],
+  'background-blend-mode': [
+    'normal',
+    'multiply',
+    'screen',
+    'overlay',
+    'darken',
+    'lighten',
+    'color-dodge',
+    'color-burn',
+    'hard-light',
+    'soft-light',
+    'difference',
+    'exclusion',
+    'hue',
+    'saturation',
+    'color',
+    'luminosity',
+  ],
 
-  // Border / Outline
-  border: ['none', '1px solid #000', '2px dashed #ccc'],
-  'border-bottom': ['none', '1px solid #000', '2px dashed #ccc'],
+  /********************************************
+   * Border / Outline
+   ********************************************/
+  border: [
+    // shorthand เช่น "1px solid #000", "thin dotted red"
+    '<border-width> <border-style> <color>',
+  ],
+  'border-left': ['<border-width> <border-style> <color>'],
+  'border-top': ['<border-width> <border-style> <color>'],
+  'border-right': ['<border-width> <border-style> <color>'],
+  'border-bottom': ['<border-width> <border-style> <color>'],
+  'border-spacing': [
+    '<length>', // สามารถเป็น "5px 10px" ก็ได้
+  ],
   'border-collapse': ['collapse', 'separate'],
-  'border-image': ['none', 'url(border.png) 30 round'],
-  'border-left': ['none', '1px solid #000', '2px dashed #ccc'],
-  'border-radius': ['0', '4px', '50%', '9999px'],
-  'border-right': ['none', '1px solid #000', '2px dashed #ccc'],
-  'border-spacing': ['0', '2px', '4px', '8px'],
-  'border-top': ['none', '1px solid #000', '2px dashed #ccc'],
-  outline: ['none', '1px solid red'],
-  'outline-width': ['thin', 'medium', 'thick', '1px', '2px'],
-  'outline-color': ['invert', '#000', 'red'],
+  'border-image': [
+    // shorthand เช่น "url(border.png) 30 round"
+    '<border-image-shorthand>',
+  ],
+  'border-radius': [
+    '<length>',
+    '<percentage>',
+    // อาจผสมเช่น "10px 20px / 5px 10px"
+  ],
+  outline: [
+    // shorthand เช่น "1px solid red"
+    '<outline-width> <outline-style> <outline-color>',
+  ],
+  'outline-width': ['thin', 'medium', 'thick', '<length>'],
+  'outline-color': [
+    '<color>',
+    'invert', // ค่าดั้งเดิม (บาง browser อาจไม่ซัพพอร์ต)
+  ],
   'outline-style': [
+    'auto',
     'none',
-    'solid',
+    'hidden',
     'dotted',
     'dashed',
+    'solid',
     'double',
     'groove',
     'ridge',
     'inset',
     'outset',
   ],
-  'outline-offset': ['0', '1px', '2px', '4px'],
+  'outline-offset': ['<length>'],
 
-  // Color
-  color: ['currentColor', 'black', 'white', 'red', '#000', '#fff'],
+  /********************************************
+   * Box Shadow / Sizing
+   ********************************************/
+  'box-shadow': [
+    // เช่น "none" หรือ "2px 2px 4px #000" หรือ "inset 5px 5px 10px red"
+    '<shadow>',
+  ],
+  'box-sizing': ['content-box', 'border-box'],
 
-  // Container Query
-  'container-type': ['normal', 'size', 'inline-size'],
-  container: ['none', 'myContainer / size', 'myContainer / inline-size'], // shorthand (ถ้าต้องการ)
-  'container-name': ['none', 'myContainer'],
+  /********************************************
+   * Color, Cursor
+   ********************************************/
+  color: ['<color>', 'currentColor', 'inherit', 'initial', 'unset'],
+  cursor: [
+    'auto',
+    'default',
+    'none',
+    'context-menu',
+    'help',
+    'pointer',
+    'progress',
+    'wait',
+    'cell',
+    'crosshair',
+    'text',
+    'vertical-text',
+    'alias',
+    'copy',
+    'move',
+    'no-drop',
+    'not-allowed',
+    'grab',
+    'grabbing',
+    'all-scroll',
+    'col-resize',
+    'row-resize',
+    'n-resize',
+    'e-resize',
+    's-resize',
+    'w-resize',
+    'ne-resize',
+    'nw-resize',
+    'se-resize',
+    'sw-resize',
+    'ew-resize',
+    'ns-resize',
+    'nesw-resize',
+    'nwse-resize',
+    'zoom-in',
+    'zoom-out',
+  ],
 
-  // Columns / Gap
-  columns: ['auto', '200px auto', '12em 3em'],
-  gap: ['normal', '10px', '20px', '30px'],
+  /********************************************
+   * Container Query
+   ********************************************/
+  'container-type': [
+    'inline-size',
+    'block-size',
+    'size',
+    'normal', // จากสเปค container queries (W3C)
+  ],
+  // 'container' เป็น shorthand ของ container-type และ container-name
+  container: [
+    'none',
+    'inline-size',
+    'block-size',
+    'size',
+    // หรือ "inline-size fooContainer" ฯลฯ
+    '<container-shorthand>',
+  ],
+  'container-name': ['none', '<custom-name>'],
 
-  // Flex
-  flex: ['none', '0 1 auto', '1', '1 1 0'],
-  'flex-basis': ['auto', '0', '10px', '50%'],
-  'flex-grow': ['0', '1', '2', '3'],
-  'flex-shrink': ['0', '1', '2', '3'],
+  /********************************************
+   * Columns / Gap
+   ********************************************/
+  columns: [
+    // shorthand เช่น "200px 3" (column-width column-count)
+    '<column-width> <column-count>',
+  ],
+  'column-gap': ['normal', '<length>'],
+  'row-gap': ['normal', '<length>'],
+  gap: [
+    'normal',
+    '<length>',
+    // หรือ "row-gap column-gap" เป็น shorthand
+  ],
 
-  // Filter
-  filter: ['none', 'blur(5px)', 'grayscale(100%)', 'brightness(0.8)'],
+  /********************************************
+   * Flex / Grid
+   ********************************************/
+  flex: [
+    'none',
+    'auto',
+    '<number>', // flex-grow (หากใช้ตัวเดียว)
+    '<number> <number>', // flex-grow flex-shrink
+    '<number> <number> <length|percentage>', // flex-grow flex-shrink flex-basis
+    // ตัวอย่าง: "1 0 auto", "0 1 200px"
+  ],
+  'flex-basis': [
+    'auto',
+    'content',
+    '<length>',
+    '<percentage>',
+    'max-content',
+    'min-content',
+    'fit-content',
+  ],
+  'flex-wrap': ['nowrap', 'wrap', 'wrap-reverse'],
+  'flex-direction': ['row', 'row-reverse', 'column', 'column-reverse'],
+  'flex-flow': [
+    // shorthand ของ flex-direction และ flex-wrap
+    'row nowrap',
+    'row wrap',
+    'row wrap-reverse',
+    'column nowrap',
+    'column wrap',
+    'column wrap-reverse',
+    'row-reverse nowrap',
+    'row-reverse wrap',
+    'column-reverse wrap',
+    // ... เป็นต้น
+  ],
+  'flex-grow': ['<number>'],
+  'flex-shrink': ['<number>'],
 
-  // Font
-  'font-feature-settings': ['normal', '"liga" 1', '"calt" 0'],
-  'font-family': ['sans-serif', 'serif', 'monospace', 'cursive'],
-  'font-size': ['12px', '14px', '16px', '1em', '1rem'],
-  'font-style': ['normal', 'italic', 'oblique'],
-  'font-variant': ['normal', 'small-caps'],
-  'font-weight': ['normal', 'bold', 'bolder', 'lighter', '100', '400', '700', '900'],
+  grid: [
+    // shorthand เช่น "none", หรือ "100px / auto-flow 50px"
+    '<grid-shorthand>',
+  ],
+  'grid-area': [
+    // shorthand เช่น "areaName", หรือ "1 / 2 / 3 / 4"
+    '<grid-area>',
+  ],
+  'grid-auto-columns': [
+    'auto',
+    'min-content',
+    'max-content',
+    'fit-content(<length|percentage>)',
+    'minmax(<length|percentage>, <length|percentage>)',
+    '<length>',
+    '<percentage>',
+  ],
+  'grid-auto-flow': ['row', 'column', 'dense', 'row dense', 'column dense'],
+  'grid-auto-rows': [
+    'auto',
+    'min-content',
+    'max-content',
+    'fit-content(<length|percentage>)',
+    'minmax(<length|percentage>, <length|percentage>)',
+    '<length>',
+    '<percentage>',
+  ],
+  'grid-column': [
+    '<start> / <end>',
+    // เช่น "1 / 3" หรือ "span 2 / span 4"
+  ],
+  'grid-column-end': [
+    'auto',
+    '<integer>',
+    '<custom-grid-line-name>',
+    'span <integer>',
+    'span <custom-grid-line-name>',
+  ],
+  'grid-column-gap': ['normal', '<length>'],
+  'grid-column-start': [
+    'auto',
+    '<integer>',
+    '<custom-grid-line-name>',
+    'span <integer>',
+    'span <custom-grid-line-name>',
+  ],
+  'grid-gap': [
+    'normal',
+    '<length>',
+    // หรือ "row-gap column-gap"
+  ],
+  'grid-row': ['<start> / <end>'],
+  'grid-row-end': [
+    'auto',
+    '<integer>',
+    '<custom-grid-line-name>',
+    'span <integer>',
+    'span <custom-grid-line-name>',
+  ],
+  'grid-row-gap': ['normal', '<length>'],
+  'grid-row-start': [
+    'auto',
+    '<integer>',
+    '<custom-grid-line-name>',
+    'span <integer>',
+    'span <custom-grid-line-name>',
+  ],
+  'grid-template': [
+    // shorthand เช่น `"none"`, หรือ `"100px / 1fr 1fr"`, หรือรวม areas ด้วย
+    '<grid-template-shorthand>',
+  ],
+  'grid-template-areas': [
+    'none',
+    // หรือชุด string เช่น
+    `"<name> <name>" "<name2> <name3>"`,
+  ],
+  'grid-template-columns': [
+    'none',
+    'auto',
+    '<track-size>',
+    'min-content',
+    'max-content',
+    'fit-content(<length|percentage>)',
+    'repeat(<count>, <track-size>)',
+    'minmax(<length|percentage>, <length|percentage>)',
+    // ... เป็นต้น
+  ],
+  'grid-template-rows': [
+    'none',
+    'auto',
+    '<track-size>',
+    'min-content',
+    'max-content',
+    'fit-content(<length|percentage>)',
+    'repeat(<count>, <track-size>)',
+    'minmax(<length|percentage>, <length|percentage>)',
+  ],
 
-  // Grid
-  grid: ['none', '100px / auto', 'auto-flow / auto-flow dense'], // shorthand ตัวอย่าง
-  'grid-area': ['auto', 'header', 'main', 'footer', '1 / 2 / 3 / 4'],
-  'grid-auto-columns': ['auto', 'min-content', 'max-content', '1fr'],
-  'grid-auto-rows': ['auto', 'min-content', 'max-content', '1fr'],
-  'grid-column-end': ['auto', 'span 1', 'span 2', '2', '-1'],
-  'grid-column-gap': ['0', '10px', '20px', '30px'],
-  'grid-column-start': ['auto', '1', '2', 'span 2'],
-  'grid-gap': ['0', '10px', '20px', '30px'],
-  'grid-row-end': ['auto', 'span 1', 'span 2', '2', '-1'],
-  'grid-row-gap': ['0', '10px', '20px', '30px'],
-  'grid-row-start': ['auto', '1', '2', 'span 2'],
-
-  // Height / Width / Min / Max
-  height: ['auto', '100%', '100px', 'fit-content', 'min-content', 'max-content'],
-  'max-height': ['none', '100%', '100px', 'fit-content', 'min-content', 'max-content'],
-  'min-height': ['0', '100px', '100%', 'auto', 'min-content', 'max-content'],
-  width: ['auto', '100%', '100px', 'fit-content', 'min-content', 'max-content'],
-  'max-width': ['none', '100%', '100px', 'fit-content', 'min-content', 'max-content'],
-  'min-width': ['0', '100px', '100%', 'auto', 'min-content', 'max-content'],
-
-  // Isolation มีแล้ว (isolation)
-
-  // Justify Items / Self / Place
-  'justify-items': ['start', 'end', 'center', 'stretch'],
-  'justify-self': ['auto', 'start', 'end', 'center', 'stretch'],
-  'place-content': [
+  /********************************************
+   * Justify / Align / Place
+   ********************************************/
+  'justify-content': [
+    'flex-start',
+    'flex-end',
     'center',
-    'start',
-    'end',
-    'stretch',
     'space-between',
     'space-around',
     'space-evenly',
+    'start',
+    'end',
+    'left',
+    'right',
   ],
-  'place-items': ['auto', 'start', 'end', 'center', 'stretch'],
-  'place-self': ['auto', 'start', 'end', 'center', 'stretch'],
+  'justify-items': [
+    'normal',
+    'start',
+    'end',
+    'center',
+    'left',
+    'right',
+    'stretch',
+    'legacy',
+    'self-start',
+    'self-end',
+    'baseline',
+    'first baseline',
+    'last baseline',
+  ],
+  'justify-self': [
+    'auto',
+    'normal',
+    'start',
+    'end',
+    'center',
+    'left',
+    'right',
+    'stretch',
+    'self-start',
+    'self-end',
+    'baseline',
+    'first baseline',
+    'last baseline',
+  ],
+  'place-content': [
+    // shorthand ของ align-content + justify-content เช่น "center stretch"
+    '<place-content-shorthand>',
+  ],
+  'place-items': [
+    // shorthand ของ align-items + justify-items
+    '<place-items-shorthand>',
+  ],
+  'place-self': [
+    // shorthand ของ align-self + justify-self
+    '<place-self-shorthand>',
+  ],
 
-  // Left / Right / Top / Bottom
-  left: ['auto', '0', '50%', '100px'],
-  right: ['auto', '0', '50%', '100px'],
-  top: ['auto', '0', '50%', '100px'],
-  bottom: ['auto', '0', '50%', '100px'],
+  /********************************************
+   * Font / Text
+   ********************************************/
+  'font-family': [
+    '<family-name>',
+    'serif',
+    'sans-serif',
+    'monospace',
+    'cursive',
+    'fantasy',
+    // ... หรือ list แบบ "Arial, sans-serif"
+  ],
+  'font-size': [
+    'xx-small',
+    'x-small',
+    'small',
+    'medium',
+    'large',
+    'x-large',
+    'xx-large',
+    'xxx-large',
+    'smaller',
+    'larger',
+    '<length>',
+    '<percentage>',
+  ],
+  'font-weight': [
+    'normal',
+    'bold',
+    'bolder',
+    'lighter',
+    '100',
+    '200',
+    '300',
+    '400',
+    '500',
+    '600',
+    '700',
+    '800',
+    '900',
+  ],
+  'font-style': [
+    'normal',
+    'italic',
+    'oblique',
+    // บางครั้งอาจระบุ oblique angle เช่น "oblique 10deg"
+  ],
+  'font-variant': [
+    'normal',
+    'small-caps',
+    // ยังมีค่าอื่น ๆ มากมายใน modern CSS (ligatures ฯลฯ)
+  ],
+  'font-feature-settings': [
+    'normal',
+    // หรือค่าเป็น string เช่น '"kern" 1', '"liga" off'
+    '<feature-tag>',
+  ],
+  'line-height': ['normal', '<number>', '<length>', '<percentage>'],
+  'letter-spacing': ['normal', '<length>'],
+  'word-spacing': ['normal', '<length>'],
 
-  // Letter / Line / Word
-  'letter-spacing': ['normal', '1px', '2px'],
-  'line-height': ['normal', '1', '1.5', '2', '1em', '1rem'],
-  'word-spacing': ['normal', '1px', '2px'],
+  'text-align': [
+    'left',
+    'right',
+    'center',
+    'justify',
+    'start',
+    'end',
+    'match-parent',
+    'justify-all', // บาง browser
+  ],
+  'text-decoration': [
+    // shorthand เช่น "underline red wavy"
+    '<text-decoration-shorthand>',
+  ],
+  'text-indent': [
+    '<length>',
+    '<percentage>',
+    'hanging',
+    'each-line',
+    // หรือผสมกัน "2em hanging"
+  ],
+  'text-justify': ['auto', 'none', 'inter-word', 'inter-character', 'distribute'],
+  'text-overflow': ['clip', 'ellipsis', '<string>'],
+  'text-shadow': [
+    'none',
+    '<shadow>', // เช่น "1px 1px 2px #000"
+  ],
+  'text-transform': [
+    'none',
+    'capitalize',
+    'uppercase',
+    'lowercase',
+    'full-width',
+    'full-size-kana',
+  ],
+  'text-wrap': [
+    // ส่วนใหญ่ property นี้เป็น non-standard หรือเป็นของเก่า (webkit)
+    'normal',
+    'none',
+    'wrap',
+    'unrestricted',
+    'suppress',
+  ],
+  'text-underline-position': [
+    'auto',
+    'under',
+    'left',
+    'right',
+    'below',
+    // ... บาง browser มีค่าพิเศษ
+  ],
+  'word-break': ['normal', 'break-all', 'keep-all', 'break-word'],
+  'white-space': ['normal', 'nowrap', 'pre', 'pre-wrap', 'pre-line', 'break-spaces'],
 
-  // Margin / Padding
-  margin: ['0', 'auto', '10px', '1rem'],
-  'margin-bottom': ['0', 'auto', '10px', '1rem'],
-  'margin-left': ['0', 'auto', '10px', '1rem'],
-  'margin-right': ['0', 'auto', '10px', '1rem'],
-  'margin-top': ['0', 'auto', '10px', '1rem'],
-  padding: ['0', '10px', '1rem'],
-  'padding-bottom': ['0', '10px', '1rem'],
-  'padding-left': ['0', '10px', '1rem'],
-  'padding-right': ['0', '10px', '1rem'],
-  'padding-top': ['0', '10px', '1rem'],
+  'text-size-adjust': [
+    'auto',
+    'none',
+    '<percentage>', // เช่น "100%"
+  ],
+  'text-decoration-line': [
+    'none',
+    'underline',
+    'overline',
+    'line-through',
+    'blink', // ไม่ค่อยซัพพอร์ตแล้ว
+  ],
+  'text-decoration-color': ['<color>'],
+  'text-decoration-style': ['solid', 'double', 'dotted', 'dashed', 'wavy'],
+  'text-decoration-skip-ink': ['auto', 'none', 'all'],
 
-  // Mask / Clip
-  mask: ['none', 'url(mask.png)', 'linear-gradient(#fff, #000)'],
-  'mask-image': ['none', 'url(mask.png)'],
-  'clip-path': ['none', 'circle(50% at 50% 50%)', 'inset(0 0 100px 0)'],
+  /********************************************
+   * Filter / Blend / Backdrop
+   ********************************************/
+  filter: [
+    'none',
+    '<filter-function>', // เช่น "blur(5px)", "grayscale(0.5)"
+  ],
+  'backdrop-filter': ['none', '<filter-function>'],
+  '-webkit-backdrop-filter': ['none', '<filter-function>'],
+  'mix-blend-mode': [
+    'normal',
+    'multiply',
+    'screen',
+    'overlay',
+    'darken',
+    'lighten',
+    'color-dodge',
+    'color-burn',
+    'hard-light',
+    'soft-light',
+    'difference',
+    'exclusion',
+    'hue',
+    'saturation',
+    'color',
+    'luminosity',
+  ],
 
-  // Object
+  /********************************************
+   * Dimensions / Spacing
+   ********************************************/
+  width: ['auto', '<length>', '<percentage>', 'max-content', 'min-content', 'fit-content'],
+  'max-width': ['none', '<length>', '<percentage>', 'max-content', 'min-content', 'fit-content'],
+  'min-width': ['auto', '<length>', '<percentage>', 'max-content', 'min-content', 'fit-content'],
+  height: ['auto', '<length>', '<percentage>', 'max-content', 'min-content', 'fit-content'],
+  'max-height': ['none', '<length>', '<percentage>', 'max-content', 'min-content', 'fit-content'],
+  'min-height': ['auto', '<length>', '<percentage>', 'max-content', 'min-content', 'fit-content'],
+
+  margin: [
+    'auto',
+    '<length>',
+    '<percentage>',
+    // shorthand เช่น "10px 20px"
+  ],
+  'margin-left': ['auto', '<length>', '<percentage>'],
+  'margin-top': ['auto', '<length>', '<percentage>'],
+  'margin-right': ['auto', '<length>', '<percentage>'],
+  'margin-bottom': ['auto', '<length>', '<percentage>'],
+
+  padding: [
+    '<length>',
+    '<percentage>',
+    // shorthand เช่น "10px 20px"
+  ],
+  'padding-left': ['<length>', '<percentage>'],
+  'padding-top': ['<length>', '<percentage>'],
+  'padding-right': ['<length>', '<percentage>'],
+  'padding-bottom': ['<length>', '<percentage>'],
+
+  /********************************************
+   * Position
+   ********************************************/
+  position: ['static', 'relative', 'absolute', 'fixed', 'sticky'],
+  left: ['auto', '<length>', '<percentage>'],
+  top: ['auto', '<length>', '<percentage>'],
+  right: ['auto', '<length>', '<percentage>'],
+  bottom: ['auto', '<length>', '<percentage>'],
+  'z-index': ['auto', '<integer>'],
+
+  /********************************************
+   * Object
+   ********************************************/
   'object-fit': ['fill', 'contain', 'cover', 'none', 'scale-down'],
-  'object-position': ['50% 50%', 'center center', 'top left', 'bottom right'],
+  'object-position': [
+    'center',
+    'top',
+    'bottom',
+    'left',
+    'right',
+    '<length> <length>',
+    '<percentage> <percentage>',
+    // หรือ combination เช่น "left 20px bottom 10px"
+  ],
 
-  // Overscroll / Resize
+  /********************************************
+   * Aspect Ratio
+   ********************************************/
+  'aspect-ratio': [
+    'auto',
+    '<ratio>', // เช่น "16/9", "1/1"
+  ],
+
+  /********************************************
+   * Overflow / Scroll Behavior
+   ********************************************/
+  overflow: ['visible', 'hidden', 'clip', 'scroll', 'auto'],
+  'overflow-x': ['visible', 'hidden', 'clip', 'scroll', 'auto'],
+  'overflow-y': ['visible', 'hidden', 'clip', 'scroll', 'auto'],
+  'scroll-behavior': ['auto', 'smooth'],
   'overscroll-behavior': ['auto', 'contain', 'none'],
   'overscroll-behavior-x': ['auto', 'contain', 'none'],
   'overscroll-behavior-y': ['auto', 'contain', 'none'],
-  resize: ['none', 'both', 'horizontal', 'vertical'],
+  resize: [
+    'none',
+    'both',
+    'horizontal',
+    'vertical',
+    'block', // บางสเปค
+    'inline', // บางสเปค
+  ],
 
-  // Perspective / Transform
-  perspective: ['none', '500px', '1000px'],
-  'perspective-origin': ['center center', 'top left', '50% 50%'],
-  transform: ['none', 'translate(0,0)', 'scale(1)', 'rotate(0deg)'],
-  'transform-box': ['border-box', 'fill-box', 'view-box'],
-  'transform-origin': ['center center', 'top left', 'bottom right'],
+  /********************************************
+   * Opacity, Pointer Events (PE)
+   ********************************************/
+  'pointer-events': [
+    'auto',
+    'none',
+    'visiblePainted',
+    'visibleFill',
+    'visibleStroke',
+    'visible',
+    'painted',
+    'fill',
+    'stroke',
+    'all',
+    'inherit',
+  ],
+
+  /********************************************
+   * Transform / Transition / Will-change
+   ********************************************/
+  transform: [
+    'none',
+    '<transform-function>', // เช่น "translate(10px, 20px) rotate(45deg)"
+  ],
+  'transform-origin': [
+    'center',
+    'top',
+    'bottom',
+    'left',
+    'right',
+    '<length> <length>',
+    '<percentage> <percentage>',
+    // หรือ combination เช่น "50% 50%"
+  ],
+  'transform-box': ['border-box', 'content-box', 'fill-box', 'stroke-box', 'view-box'],
   'transform-style': ['flat', 'preserve-3d'],
+  perspective: ['none', '<length>'],
+  'perspective-origin': [
+    'center',
+    'top',
+    'bottom',
+    'left',
+    'right',
+    '<length> <length>',
+    '<percentage> <percentage>',
+  ],
+  'backface-visibility': ['visible', 'hidden'],
 
-  // Transition
-  transition: ['none', 'all 0.3s ease', 'opacity 0.3s ease-in'],
-  'transition-delay': ['0s', '1s', '2s'],
-  'transition-duration': ['0s', '0.3s', '1s'],
-  'transition-property': ['none', 'all', 'opacity', 'transform'],
+  transition: [
+    // shorthand: property duration timing-function delay
+    '<transition-shorthand>',
+  ],
+  'transition-delay': ['<time>'],
+  'transition-duration': ['<time>'],
+  'transition-property': ['none', 'all', '<custom-property-name>'],
   'transition-timing-function': [
-    'ease',
     'linear',
+    'ease',
     'ease-in',
     'ease-out',
     'ease-in-out',
     'step-start',
     'step-end',
+    'steps(<number>)',
+    'cubic-bezier(<x1>, <y1>, <x2>, <y2>)',
+  ],
+  'will-change': [
+    'auto',
+    '<property-name>',
+    // เช่น "transform, opacity"
   ],
 
-  // Text Decor (เพิ่มเติม)
-  'text-shadow': ['none', '1px 1px 2px rgba(0,0,0,0.5)'],
-  'text-wrap': ['normal', 'none'], // หรือหากไม่ใช้จริง สามารถลบทิ้งได้
-  'text-underline-position': ['auto', 'under', 'left', 'right'],
-  'text-size-adjust': ['auto', 'none', '100%'],
-  'text-decoration-line': ['none', 'underline', 'overline', 'line-through'],
-  'text-decoration-color': ['#000', '#fff', 'red', 'blue', 'currentColor'],
-  'text-decoration-style': ['solid', 'double', 'dotted', 'dashed', 'wavy'],
-  'text-decoration-skip-ink': ['none', 'auto', 'all'],
-
-  // Will-change
-  'will-change': ['auto', 'scroll-position', 'contents', 'transform', 'opacity'],
-
-  // Content
-  content: ['normal', 'none', '""', '"example"', 'attr(data-content)'],
-
-  // Vendor Prefix
-  '-webkit-display': [
-    'inline-flex',
-    'inline-block',
-    'inline-box',
-    'inline-grid',
-    'inline-list-item',
-    'inline-table',
-    'run-in',
-    'table',
-    'table-caption',
-    'table-cell',
-    'table-column',
-    'table-column-group',
-    'table-footer-group',
-    'table-header-group',
-    'table-row',
-    'table-row-group',
+  /********************************************
+   * Mask / Clip
+   ********************************************/
+  mask: [
+    '<mask-shorthand>',
+    // เช่น "url(mask.png) no-repeat center / contain"
+  ],
+  'mask-image': ['none', '<image>', 'url(...)', 'linear-gradient(...)'],
+  '-webkit-mask': ['<mask-shorthand>'],
+  '-webkit-mask-image': ['none', '<image>', 'url(...)', 'linear-gradient(...)'],
+  'clip-path': [
     'none',
+    '<basic-shape>',
+    'url(...)',
+    'margin-box',
+    'border-box',
+    'padding-box',
+    'content-box',
+    'text',
+    // ... เป็นต้น
   ],
-
-  // -webkit-animation, -moz-animation, -ms-animation (abbr: '-webkit-ani', '-moz-ani', '-ms-ani')
-  '-webkit-animation': ['none', 'fadein 1s ease-in-out', 'spin 0.5s linear infinite'],
-  '-moz-animation': ['none', 'fadein 1s ease-in-out', 'spin 0.5s linear infinite'],
-  '-ms-animation': ['none', 'fadein 1s ease-in-out', 'spin 0.5s linear infinite'],
-
-  // -webkit-border-radius, -moz-border-radius (abbr: '-webkit-rd', '-moz-rd')
-  '-webkit-border-radius': ['0', '4px', '50%', '9999px'],
-  '-moz-border-radius': ['0', '4px', '50%', '9999px'],
-
-  // -webkit-box-shadow, -moz-box-shadow (abbr: '-webkit-sd', '-moz-sd')
-  '-webkit-box-shadow': [
+  '-webkit-clip-path': [
     'none',
-    '0px 4px 6px rgba(0,0,0,0.1)',
-    'inset 0px 4px 6px rgba(0,0,0,0.1)',
+    '<basic-shape>',
+    'url(...)',
+    'margin-box',
+    'border-box',
+    'padding-box',
+    'content-box',
+    'text',
   ],
-  '-moz-box-shadow': ['none', '0px 4px 6px rgba(0,0,0,0.1)', 'inset 0px 4px 6px rgba(0,0,0,0.1)'],
 
-  // -webkit-box-sizing, -moz-box-sizing (abbr: 'siz-webkit', 'siz-moz')
-  '-webkit-box-sizing': ['content-box', 'border-box'],
-  '-moz-box-sizing': ['content-box', 'border-box'],
+  /********************************************
+   * Appearance / User-select
+   ********************************************/
+  appearance: [
+    'auto',
+    'none',
+    // browser-specific เช่น 'textfield', 'button', ...
+  ],
+  '-webkit-appearance': [
+    'auto',
+    'none',
+    // browser-specific เช่น 'textfield', 'button', ...
+  ],
 
-  // -webkit-filter (abbr: '-webkit-fil')
-  '-webkit-filter': ['none', 'blur(5px)', 'grayscale(100%)', 'brightness(0.8)'],
+  'user-select': ['auto', 'text', 'none', 'contain', 'all'],
+  '-webkit-user-select': ['auto', 'text', 'none', 'contain', 'all'],
 
-  // -webkit-backdrop-filter (abbr: '-webkit-bf')
-  '-webkit-backdrop-filter': ['none', 'blur(4px)', 'brightness(0.8)'],
-
-  // -webkit-background-blend-mode (abbr: '-webkit-bg-blend')
-  '-webkit-background-blend-mode': ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten'],
-
-  // -webkit-transform, -moz-transform, -ms-transform (abbr: '-webkit-tf', '-moz-tf', '-ms-tf')
-  '-webkit-transform': ['none', 'translate(0,0)', 'scale(1)', 'rotate(0deg)'],
-  '-moz-transform': ['none', 'translate(0,0)', 'scale(1)', 'rotate(0deg)'],
-  '-ms-transform': ['none', 'translate(0,0)', 'scale(1)', 'rotate(0deg)'],
-
-  // -webkit-transition, -moz-transition, -ms-transition (abbr: '-webkit-tsn', '-moz-tsn', '-ms-tsn')
-  '-webkit-transition': ['none', 'all 0.3s ease', 'opacity 0.3s ease-in'],
-  '-moz-transition': ['none', 'all 0.3s ease', 'opacity 0.3s ease-in'],
-  '-ms-transition': ['none', 'all 0.3s ease', 'opacity 0.3s ease-in'],
-
-  // -webkit-text-size-adjust, -moz-text-size-adjust, -ms-text-size-adjust (abbr: 'tx-adj-webkit', 'tx-adj-moz', 'tx-adj-ms')
-  '-webkit-text-size-adjust': ['auto', 'none', '100%'],
-  '-moz-text-size-adjust': ['auto', 'none', '100%'],
-  '-ms-text-size-adjust': ['auto', 'none', '100%'],
-
-  // -webkit-user-select, -moz-user-select, -ms-user-select (abbr: '-webkit-sel', '-moz-sel', '-ms-sel')
-  '-webkit-user-select': ['none', 'text', 'all', 'auto'],
-  '-moz-user-select': ['none', 'text', 'all', 'auto'],
-  '-ms-user-select': ['none', 'text', 'all', 'auto'],
-
-  // -webkit-appearance, -moz-appearance (abbr: '-webkit-app', '-moz-app')
-  '-webkit-appearance': ['auto', 'none', 'textfield', 'button'],
-  '-moz-appearance': ['auto', 'none', 'textfield', 'button'],
-
-  // -webkit-mask, -webkit-mask-image (abbr: '-webkit-mask', '-webkit-mask-img')
-  '-webkit-mask': ['none', 'url(mask.png)', 'linear-gradient(#fff, #000)'],
-  '-webkit-mask-image': ['none', 'url(mask.png)'],
-
-  // -webkit-clip-path (abbr: '-webkit-clip-path')
-  '-webkit-clip-path': ['none', 'circle(50% at 50% 50%)', 'inset(0 0 100px 0)'],
+  /********************************************
+   * Misc
+   ********************************************/
+  isolation: ['auto', 'isolate'],
+  content: [
+    'normal',
+    'none',
+    'counter',
+    'attr(...)',
+    'open-quote',
+    'close-quote',
+    'no-open-quote',
+    'no-close-quote',
+    '<string>',
+  ],
 };
 
 export const abbrMap: Record<string, string> = {
@@ -359,15 +873,11 @@ export const abbrMap: Record<string, string> = {
   ai: 'align-items',
   as: 'align-self',
   d: 'display',
-  '-webkit-d': '-webkit-display', // (ไม่ค่อยพบว่าได้ใช้ แต่ใส่เผื่อ)
 
   /********************************************
    * Animation
    ********************************************/
   ani: 'animation',
-  '-webkit-ani': '-webkit-animation',
-  '-moz-ani': '-moz-animation',
-  '-ms-ani': '-ms-animation',
   'ani-delay': 'animation-delay',
   'ani-dir': 'animation-direction',
   'ani-dur': 'animation-duration',
@@ -400,8 +910,6 @@ export const abbrMap: Record<string, string> = {
   'bd-collapse': 'border-collapse',
   'bd-img': 'border-image',
   rd: 'border-radius',
-  '-webkit-rd': '-webkit-border-radius',
-  '-moz-rd': '-moz-border-radius',
   outl: 'outline',
   'outl-width': 'outline-width',
   'outl-color': 'outline-color',
@@ -412,17 +920,13 @@ export const abbrMap: Record<string, string> = {
    * Box Shadow / Sizing
    ********************************************/
   sd: 'box-shadow',
-  '-webkit-sd': '-webkit-box-shadow',
-  '-moz-sd': '-moz-box-shadow',
   siz: 'box-sizing',
-  'siz-webkit': '-webkit-box-sizing',
-  'siz-moz': '-moz-box-sizing',
 
   /********************************************
    * Color, Cursor
    ********************************************/
   c: 'color',
-  curs: 'cursor',
+  cur: 'cursor',
 
   /********************************************
    * Container Query
@@ -443,8 +947,6 @@ export const abbrMap: Record<string, string> = {
    * Flex / Grid
    ********************************************/
   fx: 'flex',
-  '-webkit-fx': '-webkit-flex',
-  '-moz-fx': '-moz-flex',
   'fx-basis': 'flex-basis',
   basis: 'flex-basis', // (สำรอง ถ้าอยากใช้ basis[...] ตรง ๆ)
   wrap: 'flex-wrap',
@@ -508,10 +1010,6 @@ export const abbrMap: Record<string, string> = {
   'tx-ws': 'white-space',
 
   'tx-adj': 'text-size-adjust',
-  'tx-adj-webkit': '-webkit-text-size-adjust',
-  'tx-adj-moz': '-moz-text-size-adjust',
-  'tx-adj-ms': '-ms-text-size-adjust',
-
   'tx-decor-line': 'text-decoration-line',
   'tx-decor-color': 'text-decoration-color',
   'tx-decor-style': 'text-decoration-style',
@@ -521,11 +1019,9 @@ export const abbrMap: Record<string, string> = {
    * Filter / Blend / Backdrop
    ********************************************/
   fil: 'filter',
-  '-webkit-fil': '-webkit-filter',
   bf: 'backdrop-filter',
   '-webkit-bf': '-webkit-backdrop-filter',
   mbm: 'mix-blend-mode',
-  '-webkit-bg-blend': '-webkit-background-blend-mode', // อาจไม่ได้ใช้จริง
 
   /********************************************
    * Dimensions / Spacing
@@ -585,15 +1081,12 @@ export const abbrMap: Record<string, string> = {
   /********************************************
    * Opacity, Pointer Events, Cursor
    ********************************************/
-  ptr: 'pointer-events',
+  pe: 'pointer-events',
 
   /********************************************
    * Transform / Transition / Will-change
    ********************************************/
   tf: 'transform',
-  '-webkit-tf': '-webkit-transform',
-  '-moz-tf': '-moz-transform',
-  '-ms-tf': '-ms-transform',
   'tf-origin': 'transform-origin',
   'tf-box': 'transform-box',
   'tf-style': 'transform-style',
@@ -602,9 +1095,6 @@ export const abbrMap: Record<string, string> = {
   'backface-vis': 'backface-visibility',
 
   tsn: 'transition',
-  '-webkit-tsn': '-webkit-transition',
-  '-moz-tsn': '-moz-transition',
-  '-ms-tsn': '-ms-transition',
   'tsn-delay': 'transition-delay',
   'tsn-dur': 'transition-duration',
   'tsn-prop': 'transition-property',
@@ -626,12 +1116,9 @@ export const abbrMap: Record<string, string> = {
    ********************************************/
   app: 'appearance',
   '-webkit-app': '-webkit-appearance',
-  '-moz-app': '-moz-appearance',
 
-  sel: 'user-select',
+  us: 'user-select',
   '-webkit-sel': '-webkit-user-select',
-  '-moz-sel': '-moz-user-select',
-  '-ms-sel': '-ms-user-select',
 
   /********************************************
    * Misc
