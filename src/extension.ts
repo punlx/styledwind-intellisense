@@ -1,7 +1,5 @@
 // extension.ts
-
 import * as vscode from 'vscode'; // <<--- สำคัญสำหรับการใช้ vscode namespace
-
 import { parseThemePaletteFull, parseThemeScreenDict } from './parseTheme';
 import { createBracketProvider, createDashProvider } from './suggestProviders';
 

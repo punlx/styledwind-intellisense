@@ -1,5 +1,4 @@
 // suggestProviders.ts
-
 import * as vscode from 'vscode';
 import { abbrMap, cssValues } from './constants';
 
