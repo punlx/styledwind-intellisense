@@ -4,7 +4,7 @@
   "injectionSelector": "L:source.ts, L:source.tsx",
   "patterns": [
     {
-      "name": "support.function.misc.css",
+      "name": "support.type.property-name.css",
       "match": "(--[\\w\\d-]+)"
     },
 
@@ -59,7 +59,7 @@
       "match": "([\\w-]+)\\s*\\["
     },
     {
-      "name": "variable.other.constant.object.ts",
+      "name": "support.function.misc.css",
       "match": "\\$(([\\w-]+)\\s*\\[)"
     },
     {
