@@ -1,13 +1,9 @@
-// extension.ts
-import * as vscode from 'vscode'; // <<--- สำคัญสำหรับการใช้ vscode namespace
+import * as vscode from 'vscode';
 import { parseThemePaletteFull, parseThemeScreenDict } from './parseTheme';
 import { createBracketProvider, createDashProvider } from './suggestProviders';
-
-// อย่าลืม import createHoverProvider
 import { createHoverProvider } from './hoverProvider';
-
-// อย่าลืม import createReversePropertyProvider
 import { createReversePropertyProvider } from './reversePropertyProvider';
+import { createInlayHintsProvider } from './inlayHintsProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -24,8 +20,6 @@ export async function activate(context: vscode.ExtensionContext) {
       );
       if (foundUris.length > 0) {
         const themeFilePath = foundUris[0].fsPath;
-
-        // ใช้ parseThemePaletteFull เพื่อให้ได้ object สำหรับจัดการสี
         paletteColors = parseThemePaletteFull(themeFilePath);
         screenDict = parseThemeScreenDict(themeFilePath);
       }
@@ -34,12 +28,23 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
+  // สร้าง provider เดิม ๆ
   const bracketProvider = createBracketProvider();
   const dashProvider = createDashProvider(paletteColors);
   const hoverProvider = createHoverProvider(screenDict);
   const reversePropProvider = createReversePropertyProvider();
 
-  context.subscriptions.push(bracketProvider, dashProvider, hoverProvider, reversePropProvider);
+  // สร้าง provider ใหม่ Inlay Hints
+  const inlayProvider = createInlayHintsProvider();
+
+  // register => push เข้า context.subscriptions
+  context.subscriptions.push(
+    bracketProvider,
+    dashProvider,
+    hoverProvider,
+    reversePropProvider,
+    inlayProvider
+  );
 }
 
 export function deactivate() {

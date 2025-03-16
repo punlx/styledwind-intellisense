@@ -910,12 +910,12 @@ export const abbrMap: Record<string, string> = {
   'bd-spacing': 'border-spacing',
   'bd-collapse': 'border-collapse',
   'bd-img': 'border-image',
-  rd: 'border-radius',
-  outl: 'outline',
-  'outl-width': 'outline-width',
-  'outl-color': 'outline-color',
-  'outl-style': 'outline-style',
-  'outl-offset': 'outline-offset',
+  br: 'border-radius',
+  ol: 'outline',
+  'ol-width': 'outline-width',
+  'ol-color': 'outline-color',
+  'ol-style': 'outline-style',
+  'ol-offset': 'outline-offset',
 
   /********************************************
    * Box Shadow / Sizing
