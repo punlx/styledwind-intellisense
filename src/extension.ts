@@ -3,11 +3,12 @@ import { parseThemePaletteFull, parseThemeScreenDict } from './parseTheme';
 import { createBracketProvider, createDashProvider } from './suggestProviders';
 import { createHoverProvider } from './hoverProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
-import { createInlayHintsProvider } from './inlayHintsProvider';
+import { updateDecorations } from './ghostTextDecorations';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
 
+  // ----- ส่วนงานเดิม: parse theme (optional) -----
   let paletteColors: Record<string, Record<string, string>> = {};
   let screenDict: Record<string, string> = {};
 
@@ -28,23 +29,39 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  // สร้าง provider เดิม ๆ
+  // ----- สร้าง provider จากไฟล์เดิม (suggestProviders, hoverProvider, etc.) -----
   const bracketProvider = createBracketProvider();
   const dashProvider = createDashProvider(paletteColors);
   const hoverProvider = createHoverProvider(screenDict);
   const reversePropProvider = createReversePropertyProvider();
 
-  // สร้าง provider ใหม่ Inlay Hints
-  const inlayProvider = createInlayHintsProvider();
+  // register
+  context.subscriptions.push(bracketProvider, dashProvider, hoverProvider, reversePropProvider);
 
-  // register => push เข้า context.subscriptions
-  context.subscriptions.push(
-    bracketProvider,
-    dashProvider,
-    hoverProvider,
-    reversePropProvider,
-    inlayProvider
-  );
+  // ----- ส่วนใหม่: ลงทะเบียน event สำหรับ Text Decorations -----
+  // 1) เรียก updateDecorations ทันที ถ้ามี active editor
+  if (vscode.window.activeTextEditor) {
+    updateDecorations(vscode.window.activeTextEditor);
+  }
+
+  // 2) เวลาเปลี่ยน active editor
+  const changeEditorDisposable = vscode.window.onDidChangeActiveTextEditor((editor) => {
+    if (editor) {
+      updateDecorations(editor);
+    }
+  });
+  context.subscriptions.push(changeEditorDisposable);
+
+  // 3) เวลาแก้ไขเอกสาร
+  const changeDocDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
+    const editor = vscode.window.activeTextEditor;
+    if (editor && event.document === editor.document) {
+      updateDecorations(editor);
+    }
+  });
+  context.subscriptions.push(changeDocDisposable);
+
+  // (เสร็จ)
 }
 
 export function deactivate() {
