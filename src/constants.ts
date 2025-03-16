@@ -951,7 +951,7 @@ export const abbrMap: Record<string, string> = {
   'fx-basis': 'flex-basis',
   basis: 'flex-basis', // (สำรอง ถ้าอยากใช้ basis[...] ตรง ๆ)
   wrap: 'flex-wrap',
-  direc: 'flex-direction',
+  dir: 'flex-direction',
   flow: 'flex-flow',
   grow: 'flex-grow',
   shrink: 'flex-shrink',

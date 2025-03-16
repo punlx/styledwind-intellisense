@@ -1,6 +1,6 @@
+// inlayHintsProvider.ts
 import * as vscode from 'vscode';
-import { abbrMap } from './constants';
-import { specialSplitMap } from './specialSplitMap'; // ที่เราเพิ่ง generate
+import { abbrMap } from './constants'; // ใช้ abbrMap จาก constants.ts
 
 export function createInlayHintsProvider() {
   return vscode.languages.registerInlayHintsProvider(
@@ -17,30 +17,26 @@ export function createInlayHintsProvider() {
           const regex = /([\w-]+)\[/g;
           let match: RegExpExecArray | null;
 
+          // regex จับ abbr เช่น "bg[" => abbr="bg"
           while ((match = regex.exec(lineText)) !== null) {
             const abbr = match[1];
             const startIndex = match.index;
 
-            // ถ้า abbr ไม่อยู่ใน abbrMap => ข้าม
-            if (!abbrMap[abbr]) continue;
+            // ถ้า abbr อยู่ใน abbrMap => สร้าง inlay hints
+            if (abbr in abbrMap) {
+              // เช่น 'bg' => 'background-color'
+              const propFullName = abbrMap[abbr];
+              // ตำแหน่งท้าย abbr
+              const position = new vscode.Position(lineIndex, startIndex + abbr.length);
 
-            // หาชุด split
-            const splits = specialSplitMap[abbr];
-            if (!splits) {
-              // fallback => ไม่ split, หรือจะแสดง property เต็มก็ได้
-              continue;
-            }
+              const hint = new vscode.InlayHint(
+                position,
+                `${propFullName}` // แสดง "background-color"
+              );
+              hint.kind = vscode.InlayHintKind.Type;
+              hint.paddingLeft = true;
 
-            // คำนวณ inlay
-            const abbrLength = abbr.length;
-            for (const split of splits) {
-              if (split.pos <= abbrLength) {
-                const pos = new vscode.Position(lineIndex, startIndex + split.pos);
-                const hint = new vscode.InlayHint(pos, split.text);
-                hint.kind = vscode.InlayHintKind.Type;
-                hint.paddingLeft = true;
-                allHints.push(hint);
-              }
+              allHints.push(hint);
             }
           }
         }
