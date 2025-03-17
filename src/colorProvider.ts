@@ -3,11 +3,10 @@ import { colorAbbrSet } from './constants';
 
 /**
  * createColorProvider:
- * - Trigger เมื่อเห็น "--" ใน abbr[...] (ex. "bg[--", "c[--", "bd[--")
- * - เช็คว่า ab in colorAbbrSet หรือไม่
- * - ถ้าใช่ => Suggest color list (จาก paletteMap)
- * - เลือก HEX ตาม mode ที่ผู้ใช้กำหนดในคอมเมนต์ (ex. // styledwind intellisense (mode: dark))
- * - item.detail = HEX => VSCode แสดง swatch, item.documentation = list ทุก mode
+ * - Trigger เมื่อเจอ "--" หลัง abbr[...] เช่น "bg[--", "c[--"
+ * - ถ้า ab in colorAbbrSet => Suggest color name จาก paletteMap
+ * - ถ้าเจอคอมเมนต์ // styledwind intellisense (mode: dark) => ใช้สีจริง + swatch
+ * - ถ้าไม่มี mode => แสดง icon color (ไม่มี swatch), label = colorName
  */
 export function createColorProvider(paletteMap: Record<string, Record<string, string>>) {
   return vscode.languages.registerCompletionItemProvider(
@@ -17,68 +16,77 @@ export function createColorProvider(paletteMap: Record<string, Record<string, st
     ],
     {
       provideCompletionItems(document, position) {
-        // 1) ตรวจว่าต้องเป็นไฟล์ .css.ts เท่านั้น
+        // 1) ไฟล์ .css.ts เท่านั้น
         if (!document.fileName.endsWith('.css.ts')) {
           return;
         }
 
-        // 2) อ่านบรรทัดก่อน Cursor เพื่อจับ abbr[.*--$
+        // 2) อ่านข้อความก่อน cursor เพื่อตรวจ pattern (\w+)\[.*?--$
         const lineText = document.lineAt(position).text;
         const textBeforeCursor = lineText.substring(0, position.character);
 
-        // 3) อ่านทั้งไฟล์เพื่อหา comment mode
+        // 3) หาว่ามี comment mode ไหม (// styledwind intellisense (mode: X))
         const docText = document.getText();
         const modeRegex = /\/\/\s*styledwind intellisense\s*\(mode:\s*(\w+)\)/;
         const modeMatch = modeRegex.exec(docText);
         let mode: string | undefined;
         if (modeMatch) {
-          mode = modeMatch[1]; // ex. 'dark'
+          mode = modeMatch[1]; // ex. "dark"
         }
 
-        // 4) จับ pattern abbr + [... --$
-        const regex = /([\w-]+)\[.*?--$/;
-        const match = regex.exec(textBeforeCursor);
-        if (!match) {
+        // 4) จับ ab: เช่น "bg[--"
+        const abMatch = /([\w-]+)\[.*?--$/.exec(textBeforeCursor);
+        if (!abMatch) {
           return;
         }
 
-        const ab = match[1]; // เช่น "bg", "c"
-        // 5) เช็ค ab in colorAbbrSet ไหม
+        const ab = abMatch[1];
+        // ถ้า ab นี้ไม่ใช่ colorAbbrSet => ไม่ suggestion
         if (!colorAbbrSet.has(ab)) {
           return;
         }
 
-        // 6) สร้าง Suggestion จาก paletteMap
+        // 5) สร้าง CompletionItem จากแต่ละ colorName ใน paletteMap
         const completions: vscode.CompletionItem[] = [];
 
         for (const colorName of Object.keys(paletteMap)) {
-          // paletteMap[colorName] ex. { dark: "#E3F2FD", light: "#BBDEFB", ... }
-          const modeKeys = Object.keys(paletteMap[colorName]);
+          // ตัวอย่าง paletteMap[colorName] = { dark:"#...", light:"#...", ... }
+          let itemKind = vscode.CompletionItemKind.Color;
           let colorHex = '#CCCCCC';
 
-          // ถ้ามี mode และค่าใน paletteMap[colorName][mode] => เอาค่าสีนั้น
+          // ถ้าเจอโหมด => เอาสีนั้นมาโชว์ swatch
           if (mode && paletteMap[colorName][mode]) {
             colorHex = paletteMap[colorName][mode];
           } else {
-            // fallback: ถ้ามี key อื่นอยู่ เอาคีย์แรก
-            if (modeKeys.length > 0) {
-              colorHex = paletteMap[colorName][modeKeys[0]];
+            // fallback: ถ้ามีคีย์อื่น
+            const allModes = Object.keys(paletteMap[colorName]);
+            if (allModes.length > 0) {
+              colorHex = paletteMap[colorName][allModes[0]];
             }
           }
 
-          // สร้าง CompletionItem
-          const item = new vscode.CompletionItem(colorName, vscode.CompletionItemKind.Color);
-          // detail => ให้เป็น HEX เพื่อให้ VSCode แสดง swatch สี
-          item.detail = colorHex;
+          // สร้าง completion item
+          const item = new vscode.CompletionItem(colorName, itemKind);
 
-          // documentation => แสดงทุก mode ของ color นี้
-          let docText = `**Color name**: ${colorName}\n\n`;
-          for (const mk of modeKeys) {
-            docText += `- ${mk}: ${paletteMap[colorName][mk]}\n`;
+          if (!mode) {
+            // กรณีไม่มี mode => label = colorName, ไม่ set detail=HEX => VSCode ไม่ render swatch
+            item.label = colorName;
+            // ใส่ doc เล็กน้อย
+            item.documentation = new vscode.MarkdownString(
+              `No color mode specified.\n\nColor name: \`${colorName}\``
+            );
+          } else {
+            // มี mode => แสดง swatch ได้
+            item.detail = colorHex;
+            // documentation แสดงข้อมูล mode + hex
+            let docText = `**Color name**: \`${colorName}\`\n**Mode**: \`${mode}\`\n**Hex**: \`${colorHex}\`\n\nAll modes:\n`;
+            for (const mk of Object.keys(paletteMap[colorName])) {
+              docText += `- ${mk}: ${paletteMap[colorName][mk]}\n`;
+            }
+            item.documentation = new vscode.MarkdownString(docText);
           }
-          item.documentation = new vscode.MarkdownString(docText);
 
-          // เมื่อเลือก => พิมพ์ colorName
+          // ใส่ insertText = colorName (ผู้ใช้กดเลือกแล้วจะพิมพ์ "blue-100" ฯลฯ)
           item.insertText = colorName;
 
           completions.push(item);
