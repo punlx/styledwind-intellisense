@@ -5,6 +5,9 @@ import { createHoverProvider } from './hoverProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations';
 
+// ***** นำเข้าฟังก์ชัน provider ใหม่สำหรับ Breakpoints *****
+import { createBreakpointProvider } from './breakpointProvider';
+
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
 
@@ -35,8 +38,17 @@ export async function activate(context: vscode.ExtensionContext) {
   const hoverProvider = createHoverProvider(screenDict);
   const reversePropProvider = createReversePropertyProvider();
 
+  // ***** สร้าง provider ใหม่สำหรับ Breakpoints (screen, container) *****
+  const breakpointProvider = createBreakpointProvider(screenDict);
+
   // register
-  context.subscriptions.push(bracketProvider, dashProvider, hoverProvider, reversePropProvider);
+  context.subscriptions.push(
+    bracketProvider,
+    dashProvider,
+    hoverProvider,
+    reversePropProvider,
+    breakpointProvider // ดัน provider ใหม่เข้าไป
+  );
 
   // ----- ส่วนใหม่: ลงทะเบียน event สำหรับ Text Decorations -----
   // 1) เรียก updateDecorations ทันที ถ้ามี active editor
