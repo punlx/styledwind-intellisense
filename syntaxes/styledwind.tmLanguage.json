@@ -64,7 +64,7 @@
     },
     {
       "name": "entity.other.attribute-name.class.css",
-      "match": "(hover|focus|focus-visible|focus-within|target|active|before|after)"
+      "match": "(focus-visible|focus-within|hover|focus|target|active|before|after)"
     },
     {
       "name": "keyword.control.at-rule.media.css",

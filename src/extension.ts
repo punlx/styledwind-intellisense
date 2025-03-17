@@ -1,19 +1,19 @@
 import * as vscode from 'vscode';
-import { parseThemePaletteFull, parseThemeScreenDict } from './parseTheme';
+import { parseThemePaletteFull, parseThemeScreenDict, parseThemeFontDict } from './parseTheme';
 import { createBracketProvider, createDashProvider } from './suggestProviders';
 import { createHoverProvider } from './hoverProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations';
-
-// ***** นำเข้าฟังก์ชัน provider ใหม่สำหรับ Breakpoints *****
 import { createBreakpointProvider } from './breakpointProvider';
+import { createFontProvider } from './fontProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
 
-  // ----- ส่วนงานเดิม: parse theme (optional) -----
+  // ----- ส่วนงานเดิม: parse theme -----
   let paletteColors: Record<string, Record<string, string>> = {};
   let screenDict: Record<string, string> = {};
+  let fontDict: Record<string, string> = {};
 
   if (vscode.workspace.workspaceFolders?.length) {
     try {
@@ -26,20 +26,22 @@ export async function activate(context: vscode.ExtensionContext) {
         const themeFilePath = foundUris[0].fsPath;
         paletteColors = parseThemePaletteFull(themeFilePath);
         screenDict = parseThemeScreenDict(themeFilePath);
+        fontDict = parseThemeFontDict(themeFilePath);
       }
     } catch (err) {
       console.error('Error parse theme =>', err);
     }
   }
 
-  // ----- สร้าง provider จากไฟล์เดิม (suggestProviders, hoverProvider, etc.) -----
+  // ----- สร้าง provider เดิม (suggestProviders, hoverProvider, etc.) -----
   const bracketProvider = createBracketProvider();
   const dashProvider = createDashProvider(paletteColors);
   const hoverProvider = createHoverProvider(screenDict);
   const reversePropProvider = createReversePropertyProvider();
 
-  // ***** สร้าง provider ใหม่สำหรับ Breakpoints (screen, container) *****
+  // ----- Provider ใหม่ (breakpoint, font) -----
   const breakpointProvider = createBreakpointProvider(screenDict);
+  const fontProvider = createFontProvider(fontDict);
 
   // register
   context.subscriptions.push(
@@ -47,16 +49,15 @@ export async function activate(context: vscode.ExtensionContext) {
     dashProvider,
     hoverProvider,
     reversePropProvider,
-    breakpointProvider // ดัน provider ใหม่เข้าไป
+    breakpointProvider,
+    fontProvider
   );
 
-  // ----- ส่วนใหม่: ลงทะเบียน event สำหรับ Text Decorations -----
-  // 1) เรียก updateDecorations ทันที ถ้ามี active editor
+  // ----- ส่วน Text Decorations -----
   if (vscode.window.activeTextEditor) {
     updateDecorations(vscode.window.activeTextEditor);
   }
 
-  // 2) เวลาเปลี่ยน active editor
   const changeEditorDisposable = vscode.window.onDidChangeActiveTextEditor((editor) => {
     if (editor) {
       updateDecorations(editor);
@@ -64,7 +65,6 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(changeEditorDisposable);
 
-  // 3) เวลาแก้ไขเอกสาร
   const changeDocDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
     const editor = vscode.window.activeTextEditor;
     if (editor && event.document === editor.document) {
@@ -72,8 +72,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   });
   context.subscriptions.push(changeDocDisposable);
-
-  // (เสร็จ)
 }
 
 export function deactivate() {

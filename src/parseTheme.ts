@@ -1,4 +1,3 @@
-// parseTheme.ts
 import * as fs from 'fs';
 
 /**
@@ -104,5 +103,39 @@ export function parseThemeScreenDict(themeFilePath: string): Record<string, stri
       dict[m2[1]] = m2[2];
     }
   }
+  return dict;
+}
+
+/**
+ * parseThemeFontDict:
+ *  - หา theme.font({...}) => { 'display-1': 'fs[22px] fw[500] fm[Sarabun-Bold]', ... }
+ *  - คืน dict เช่น { "display-1":"fs[22px] fw[500] fm[Sarabun-Bold]", "display-2":"fs[32px] fw[500] fm[...]"}
+ */
+export function parseThemeFontDict(themeFilePath: string): Record<string, string> {
+  const dict: Record<string, string> = {};
+  if (!fs.existsSync(themeFilePath)) return dict;
+
+  const content = fs.readFileSync(themeFilePath, 'utf8');
+  const regFont = /theme\.font\s*\(\s*\{([\s\S]*?)\}\s*\)/m;
+  const mm = regFont.exec(content);
+  if (!mm) return dict;
+
+  const body = mm[1].trim();
+  const lines = body
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  for (const ln of lines) {
+    // จับรูปแบบ 'display-1': 'fs[22px] fw[500] fm[Sarabun-Bold]',
+    // หรือ display-1: "fs[22px] fw[500]"
+    const m2 = /^['"]?([\w-]+)['"]?\s*:\s*['"]([^'"]+)['"]/.exec(ln);
+    if (m2) {
+      const fontKey = m2[1];
+      const fontValue = m2[2];
+      dict[fontKey] = fontValue;
+    }
+  }
+
   return dict;
 }

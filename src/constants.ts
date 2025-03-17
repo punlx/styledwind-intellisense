@@ -866,7 +866,20 @@ export const cssValues: Record<string, string[]> = {
   ],
 };
 
+const moreStyleForSuggestion = {
+  f: 'font',
+  container: 'container (query)',
+  screen: 'screen (query)',
+  hover: 'hover',
+  active: 'active',
+  focus: 'focus',
+  'focus-within': 'focus-within',
+  'focus-visible': 'focus-visible',
+  target: 'target',
+};
+
 export const abbrMap: Record<string, string> = {
+  ...moreStyleForSuggestion,
   /********************************************
    * Alignment, Box, and Display
    ********************************************/
