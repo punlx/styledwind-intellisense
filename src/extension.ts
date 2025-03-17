@@ -6,7 +6,7 @@ import {
   parseThemeKeyframeDict,
   parseThemeSpacingDict,
 } from './parseTheme';
-import { createBracketProvider, createDashProvider } from './suggestProviders';
+import { createBracketProvider } from './suggestProviders'; // bracketProvider
 import { createHoverProvider } from './hoverProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations';
@@ -14,6 +14,8 @@ import { createBreakpointProvider } from './breakpointProvider';
 import { createFontProvider } from './fontProvider';
 import { createKeyframeProvider } from './keyframeProvider';
 import { createSpacingProvider } from './spacingProvider';
+// <<<<<<<<<<<< ใหม่
+import { createColorProvider } from './colorProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -33,7 +35,8 @@ export async function activate(context: vscode.ExtensionContext) {
       );
       if (foundUris.length > 0) {
         const themeFilePath = foundUris[0].fsPath;
-        // parse palette, screen, font, keyframe, spacing
+
+        // parse
         paletteColors = parseThemePaletteFull(themeFilePath);
         screenDict = parseThemeScreenDict(themeFilePath);
         fontDict = parseThemeFontDict(themeFilePath);
@@ -45,13 +48,15 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  // providers เดิม
+  // provider ต่าง ๆ
   const bracketProvider = createBracketProvider();
-  const dashProvider = createDashProvider(paletteColors);
   const hoverProvider = createHoverProvider(screenDict);
   const reversePropProvider = createReversePropertyProvider();
 
-  // providers ใหม่
+  // ของใหม่: colorProvider แยกชัดเจน
+  const colorProvider = createColorProvider(paletteColors);
+
+  // ของเดิม: breakpoint, font, keyframe, spacing
   const breakpointProvider = createBreakpointProvider(screenDict);
   const fontProvider = createFontProvider(fontDict);
   const keyframeProvider = createKeyframeProvider(keyframeDict);
@@ -59,9 +64,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     bracketProvider,
-    dashProvider,
     hoverProvider,
     reversePropProvider,
+    colorProvider, // ใหม่
     breakpointProvider,
     fontProvider,
     keyframeProvider,

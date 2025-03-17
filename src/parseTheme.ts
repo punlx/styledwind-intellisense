@@ -150,7 +150,7 @@ export function parseThemeKeyframeDict(themeFilePath: string): Record<string, st
 
 /**
  * parseThemeSpacingDict:
- *  - หา theme.spacing({...}) => { 'spacing-1': '12px', 'spacing-2': '14px', ... }
+ *  - หา theme.spacing({...}) => { 'spacing-1': '12px', ... }
  */
 export function parseThemeSpacingDict(themeFilePath: string): Record<string, string> {
   const dict: Record<string, string> = {};
@@ -168,7 +168,6 @@ export function parseThemeSpacingDict(themeFilePath: string): Record<string, str
     .filter(Boolean);
 
   for (const ln of lines) {
-    // ex. 'spacing-1': '12px'
     const m2 = /^['"]?([\w-]+)['"]?\s*:\s*['"]([^'"]+)['"]/.exec(ln);
     if (m2) {
       const spacingKey = m2[1];

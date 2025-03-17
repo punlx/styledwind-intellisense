@@ -902,6 +902,13 @@ export const spacingAbbrSet = new Set([
   // ... ถ้ามี abbr อื่น ๆ ที่รองรับ spacing ก็เติมได้
 ]);
 
+export const colorAbbrSet = new Set([
+  'bg', // background-color
+  'c', // color
+  'bd', // border (อาจจะโชว์สีสำหรับ border?)
+  'bdc', // border-color
+  // ... อื่น ๆ ที่ mapping ถึง property color
+]);
 export const abbrMap: Record<string, string> = {
   ...moreStyleForSuggestion,
   /********************************************
