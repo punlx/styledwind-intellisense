@@ -45,9 +45,7 @@ export function parseThemePaletteFull(
     if (!arrMatch) continue;
 
     // แยกค่าในบรรทัด (ตัด comma ให้เรียบร้อย)
-    // เช่น "'blue-100',' #E3F2FD','#BBDEFB','#90CAF9'" => array
     const rawInner = arrMatch[1];
-    // split โดยดูจาก ',' หรือจะใช้ regex เลยก็ได้
     const stringItems = rawInner.split(',').map((x) => x.trim().replace(/^['"]|['"]$/g, ''));
 
     if (isFirstRow) {
@@ -56,18 +54,13 @@ export function parseThemePaletteFull(
       isFirstRow = false;
     } else {
       // บรรทัดถัด ๆ => ข้อมูลสี
-      // stringItems[0] = ชื่อสี เช่น "blue-100"
-      // ที่เหลือเป็นค่าของแต่ละ header
       if (stringItems.length > 1) {
         const colorKey = stringItems[0]; // ex. "blue-100"
         paletteMap[colorKey] = {};
 
-        // ex. header = ['dark','light','dim']
-        // ex. stringItems = ['blue-100','#E3F2FD','#BBDEFB','#90CAF9']
-        // เริ่มจาก i=1 = dark, i=2 = light, i=3 = dim
         for (let i = 1; i < stringItems.length; i++) {
-          const colName = header[i - 1]; // 'dark','light','dim'
-          const colValue = stringItems[i]; // '#E3F2FD'
+          const colName = header[i - 1];
+          const colValue = stringItems[i];
           paletteMap[colorKey][colName] = colValue;
         }
       }
@@ -108,8 +101,8 @@ export function parseThemeScreenDict(themeFilePath: string): Record<string, stri
 
 /**
  * parseThemeFontDict:
- *  - หา theme.font({...}) => { 'display-1': 'fs[22px] fw[500] fm[Sarabun-Bold]', ... }
- *  - คืน dict เช่น { "display-1":"fs[22px] fw[500] fm[Sarabun-Bold]", "display-2":"fs[32px] fw[500] fm[...]"}
+ *  - หา theme.font({...})
+ *  - คืน { "display-1":"fs[22px] fw[500] fm[Sarabun-Bold]", ... }
  */
 export function parseThemeFontDict(themeFilePath: string): Record<string, string> {
   const dict: Record<string, string> = {};
@@ -127,13 +120,54 @@ export function parseThemeFontDict(themeFilePath: string): Record<string, string
     .filter(Boolean);
 
   for (const ln of lines) {
-    // จับรูปแบบ 'display-1': 'fs[22px] fw[500] fm[Sarabun-Bold]',
-    // หรือ display-1: "fs[22px] fw[500]"
+    // ex. 'display-1': 'fs[22px] fw[500] fm[Sarabun-Bold]'
     const m2 = /^['"]?([\w-]+)['"]?\s*:\s*['"]([^'"]+)['"]/.exec(ln);
     if (m2) {
       const fontKey = m2[1];
       const fontValue = m2[2];
       dict[fontKey] = fontValue;
+    }
+  }
+
+  return dict;
+}
+
+/**
+ * parseThemeKeyframeDict:
+ *  - หา theme.keyframe({...})
+ *  - คืน { "my-move": "0%(bg[red]...) 50%(...) 100%(...)", "pulse": "from(...) to(...)" }
+ */
+export function parseThemeKeyframeDict(themeFilePath: string): Record<string, string> {
+  const dict: Record<string, string> = {};
+  if (!fs.existsSync(themeFilePath)) return dict;
+
+  const content = fs.readFileSync(themeFilePath, 'utf8');
+  const regKeyframe = /theme\.keyframe\s*\(\s*\{([\s\S]*?)\}\s*\)/m;
+  const mm = regKeyframe.exec(content);
+  if (!mm) return dict;
+
+  // ตัวบล็อก {...} ของ keyframe
+  const body = mm[1].trim();
+  // split ด้วย ',' เหมือนเดิม
+  const lines = body
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  for (const ln of lines) {
+    // ex. 'my-move': `
+    //      0%(bg[red]) ...
+    //    `,
+    // หรือ 'pulse': `from(...) to(...)`,
+    // Note: multiline => จับด้วย regex ช่วง : '...'
+    const m2 = /^['"]?([\w-]+)['"]?\s*:\s*[`'"]([^`'"]+)[`'"]/.exec(ln);
+    if (m2) {
+      const keyName = m2[1];
+      // m2[2] อาจไม่ได้รวมหลายบรรทัดเพราะ .split(',') ตัดไป
+      // ถ้าธรรมชาติ code เขียนตัว keyframe ในบรรทัดเดียว => ใช้ได้
+      // หาก multiline มากกว่านี้ อาจต้อง parse แบบอื่น
+      const keyframeValue = m2[2].trim();
+      dict[keyName] = keyframeValue;
     }
   }
 

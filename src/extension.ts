@@ -1,19 +1,25 @@
 import * as vscode from 'vscode';
-import { parseThemePaletteFull, parseThemeScreenDict, parseThemeFontDict } from './parseTheme';
+import {
+  parseThemePaletteFull,
+  parseThemeScreenDict,
+  parseThemeFontDict,
+  parseThemeKeyframeDict,
+} from './parseTheme';
 import { createBracketProvider, createDashProvider } from './suggestProviders';
 import { createHoverProvider } from './hoverProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations';
 import { createBreakpointProvider } from './breakpointProvider';
 import { createFontProvider } from './fontProvider';
+import { createKeyframeProvider } from './keyframeProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
 
-  // ----- ส่วนงานเดิม: parse theme -----
   let paletteColors: Record<string, Record<string, string>> = {};
   let screenDict: Record<string, string> = {};
   let fontDict: Record<string, string> = {};
+  let keyframeDict: Record<string, string> = {};
 
   if (vscode.workspace.workspaceFolders?.length) {
     try {
@@ -27,30 +33,32 @@ export async function activate(context: vscode.ExtensionContext) {
         paletteColors = parseThemePaletteFull(themeFilePath);
         screenDict = parseThemeScreenDict(themeFilePath);
         fontDict = parseThemeFontDict(themeFilePath);
+        keyframeDict = parseThemeKeyframeDict(themeFilePath);
       }
     } catch (err) {
       console.error('Error parse theme =>', err);
     }
   }
 
-  // ----- สร้าง provider เดิม (suggestProviders, hoverProvider, etc.) -----
+  // providers เดิม
   const bracketProvider = createBracketProvider();
   const dashProvider = createDashProvider(paletteColors);
   const hoverProvider = createHoverProvider(screenDict);
   const reversePropProvider = createReversePropertyProvider();
 
-  // ----- Provider ใหม่ (breakpoint, font) -----
+  // providers ใหม่ (breakpoint, font, keyframe)
   const breakpointProvider = createBreakpointProvider(screenDict);
   const fontProvider = createFontProvider(fontDict);
+  const keyframeProvider = createKeyframeProvider(keyframeDict);
 
-  // register
   context.subscriptions.push(
     bracketProvider,
     dashProvider,
     hoverProvider,
     reversePropProvider,
     breakpointProvider,
-    fontProvider
+    fontProvider,
+    keyframeProvider
   );
 
   // ----- ส่วน Text Decorations -----
