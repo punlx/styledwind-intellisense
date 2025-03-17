@@ -164,6 +164,14 @@ export const cssValues: Record<string, string[]> = {
     // shorthand เช่น "1px solid #000", "thin dotted red"
     '<border-width> <border-style> <color>',
   ],
+  'border-color': [
+    // shorthand เช่น "1px solid #000", "thin dotted red"
+    '<color>',
+  ],
+  'border-width': [
+    // shorthand เช่น "1px solid #000", "thin dotted red"
+    '<border-width>',
+  ],
   'border-left': ['<border-width> <border-style> <color>'],
   'border-top': ['<border-width> <border-style> <color>'],
   'border-right': ['<border-width> <border-style> <color>'],
@@ -879,27 +887,45 @@ const moreStyleForSuggestion = {
 };
 
 export const spacingAbbrSet = new Set([
+  // Dimensions
   'w',
+  'max-w',
+  'min-w',
   'h',
+  'max-h',
+  'min-h',
+  // Margin
   'm',
-  'mt',
+  'ml',
   'mr',
   'mb',
-  'ml',
-  'mx',
-  'my',
+  'mt',
+  // Padding
   'p',
-  'pt',
+  'pl',
   'pr',
   'pb',
-  'pl',
-  'px',
-  'py',
-  't',
-  'r',
-  'b',
-  'l',
-  // ... ถ้ามี abbr อื่น ๆ ที่รองรับ spacing ก็เติมได้
+  'pt',
+  // Border radius
+  'br', // border-radius
+  // border-spacing (สำหรับ table)
+  'bd-spacing',
+  // Gap
+  'gap',
+  'col-gap',
+  'row-gap',
+  'gd-gap',
+  'gd-col-gap',
+  'gd-row-gap',
+  // ทั้งหมดด้านบนคือ property ที่มัก set เป็น px/%/spacing
+  // ถ้ามี abbr อื่น เช่น 'ol-width', 'bd-width' ฯลฯ ก็อาจเข้ากลุ่มนี้ด้วย
+  // และ bd (border) ถ้าคุณต้องให้ใส่ความหนา => ใส่ได้เช่นกัน
+  'bd', // บางที 'border' อาจมีความหนา => optional
+  'bdt',
+  'bdr',
+  'bdb',
+  'bdl',
+  'bd-w',
 ]);
 
 export const colorAbbrSet = new Set([
@@ -907,7 +933,6 @@ export const colorAbbrSet = new Set([
   'c', // color
   'bd', // border (อาจจะโชว์สีสำหรับ border?)
   'bdc', // border-color
-  // ... อื่น ๆ ที่ mapping ถึง property color
 ]);
 export const abbrMap: Record<string, string> = {
   ...moreStyleForSuggestion,
@@ -951,6 +976,8 @@ export const abbrMap: Record<string, string> = {
   bdt: 'border-top',
   bdr: 'border-right',
   bdb: 'border-bottom',
+  bdw: 'border-width',
+  bdc: 'border-color',
   'bd-spacing': 'border-spacing',
   'bd-collapse': 'border-collapse',
   'bd-img': 'border-image',
