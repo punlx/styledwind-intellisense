@@ -878,6 +878,30 @@ const moreStyleForSuggestion = {
   target: 'target',
 };
 
+export const spacingAbbrSet = new Set([
+  'w',
+  'h',
+  'm',
+  'mt',
+  'mr',
+  'mb',
+  'ml',
+  'mx',
+  'my',
+  'p',
+  'pt',
+  'pr',
+  'pb',
+  'pl',
+  'px',
+  'py',
+  't',
+  'r',
+  'b',
+  'l',
+  // ... ถ้ามี abbr อื่น ๆ ที่รองรับ spacing ก็เติมได้
+]);
+
 export const abbrMap: Record<string, string> = {
   ...moreStyleForSuggestion,
   /********************************************
