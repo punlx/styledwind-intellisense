@@ -27,7 +27,7 @@ export function createColorProvider(paletteMap: Record<string, Record<string, st
 
         // 3) หาว่ามี comment mode ไหม (// styledwind intellisense (mode: X))
         const docText = document.getText();
-        const modeRegex = /\/\/\s*styledwind intellisense\s*\(mode:\s*(\w+)\)/;
+        const modeRegex = /\/\/\s*styledwind\s*mode:\s*(\w+)/;
         const modeMatch = modeRegex.exec(docText);
         let mode: string | undefined;
         if (modeMatch) {
