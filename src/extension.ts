@@ -15,9 +15,10 @@ import { createBreakpointProvider } from './breakpointProvider';
 import { createFontProvider } from './fontProvider';
 import { createKeyframeProvider } from './keyframeProvider';
 import { createSpacingProvider } from './spacingProvider';
-// <<<<<<<<<<<< ใหม่
+import { createBindClassProvider } from './createBindClassProvider';
 import { createColorProvider } from './colorProvider';
 import { createDirectiveProvider } from './directiveProvider';
+import { createSwdSnippetProvider } from './createSwdSnippetProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -66,6 +67,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   //  directiveProvider
   const directiveProvider = createDirectiveProvider();
+  const bindClassProvider = createBindClassProvider();
+  const swdSnippetProvider = createSwdSnippetProvider();
 
   context.subscriptions.push(
     bracketProvider,
@@ -76,7 +79,9 @@ export async function activate(context: vscode.ExtensionContext) {
     fontProvider,
     keyframeProvider,
     spacingProvider,
-    directiveProvider
+    directiveProvider,
+    bindClassProvider,
+    swdSnippetProvider
   );
 
   // Decorations
