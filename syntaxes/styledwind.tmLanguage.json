@@ -1,11 +1,15 @@
 {
   "name": "Styledwind CSS inside TS template",
   "scopeName": "source.css.styledwind",
-  "injectionSelector": "L:source.ts, L:source.tsx",
+  "injectionSelector": "L:source.ts",
   "patterns": [
     {
       "name": "support.type.property-name.css",
       "match": "(--[\\w\\d-]+)"
+    },
+    {
+      "name": "support.type.property-name.css",
+      "match": "(?<=(@bind|@scope)\\s)([\\w-]+)"
     },
 
     {
@@ -65,6 +69,10 @@
     {
       "name": "entity.other.attribute-name.class.css",
       "match": "(focus-visible|focus-within|hover|focus|target|active|before|after)"
+    },
+    {
+      "name": "keyword.control.at-rule.css",
+      "match": "(@scope|@bind)"
     },
     {
       "name": "keyword.control.at-rule.media.css",

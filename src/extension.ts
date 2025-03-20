@@ -1,3 +1,4 @@
+// extension.ts
 import * as vscode from 'vscode';
 import {
   parseThemePaletteFull,
@@ -16,6 +17,7 @@ import { createKeyframeProvider } from './keyframeProvider';
 import { createSpacingProvider } from './spacingProvider';
 // <<<<<<<<<<<< ใหม่
 import { createColorProvider } from './colorProvider';
+import { createDirectiveProvider } from './directiveProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -62,6 +64,9 @@ export async function activate(context: vscode.ExtensionContext) {
   const keyframeProvider = createKeyframeProvider(keyframeDict);
   const spacingProvider = createSpacingProvider(spacingDict);
 
+  //  directiveProvider
+  const directiveProvider = createDirectiveProvider();
+
   context.subscriptions.push(
     bracketProvider,
     hoverProvider,
@@ -70,7 +75,8 @@ export async function activate(context: vscode.ExtensionContext) {
     breakpointProvider,
     fontProvider,
     keyframeProvider,
-    spacingProvider
+    spacingProvider,
+    directiveProvider
   );
 
   // Decorations
