@@ -1,9 +1,7 @@
-// directiveProvider.ts
 import * as vscode from 'vscode';
 
 export function createDirectiveProvider() {
   return vscode.languages.registerCompletionItemProvider(
-    // ใช้กับ TypeScript/TSX เท่านั้นตามที่โปรเจกต์ทำอยู่
     [
       { language: 'typescript', scheme: 'file' },
       { language: 'typescriptreact', scheme: 'file' },
@@ -15,7 +13,7 @@ export function createDirectiveProvider() {
           return;
         }
 
-        // 2) ข้อความก่อน cursor
+        // 2) ข้อความก่อน cursor (เฉพาะบรรทัดนี้)
         const lineText = document.lineAt(position).text;
         const textBeforeCursor = lineText.substring(0, position.character);
 
@@ -24,25 +22,34 @@ export function createDirectiveProvider() {
           return;
         }
 
-        // 4) สร้าง Completion Items
+        // 4) ตรวจว่า position ตอนนี้อยู่ใน block ของ .xxx { ... } หรือไม่
+        const isInsideClassBlock = checkIfInsideClassBlock(document, position);
+
+        // 5) สร้าง Completion Items ตามเงื่อนไข
         const completions: vscode.CompletionItem[] = [];
 
-        // ตัวอย่าง: Suggest "scope "
-        {
-          const item = new vscode.CompletionItem('scope ', vscode.CompletionItemKind.Keyword);
-          // insertText = "scope " เพื่อให้พิมพ์ตามหลัง '@'
-          // (แล้วแต่ต้องการว่าจะมีเคาะว่างต่อท้ายหรือไม่)
-          item.insertText = 'scope ';
-          item.detail = 'styledwind directive';
-          completions.push(item);
-        }
+        if (isInsideClassBlock) {
+          // อยู่ใน .box { ... } => แสดงเฉพาะ "@use"
+          const useItem = new vscode.CompletionItem('use', vscode.CompletionItemKind.Keyword);
+          useItem.insertText = 'use';
+          useItem.detail = 'styledwind directive (@use) inside class';
+          completions.push(useItem);
+        } else {
+          // อยู่นอกบล็อก => แสดง @scope, @bind, @const
+          const scopeItem = new vscode.CompletionItem('scope', vscode.CompletionItemKind.Keyword);
+          scopeItem.insertText = 'scope ';
+          scopeItem.detail = 'styledwind Scope directive';
+          completions.push(scopeItem);
 
-        // ตัวอย่าง: Suggest "bind"
-        {
-          const item = new vscode.CompletionItem('bind', vscode.CompletionItemKind.Keyword);
-          item.insertText = 'bind ';
-          item.detail = 'styledwind directive';
-          completions.push(item);
+          const bindItem = new vscode.CompletionItem('bind', vscode.CompletionItemKind.Keyword);
+          bindItem.insertText = 'bind ';
+          bindItem.detail = 'styledwind Bind directive';
+          completions.push(bindItem);
+
+          const constItem = new vscode.CompletionItem('const', vscode.CompletionItemKind.Keyword);
+          constItem.insertText = 'const ';
+          constItem.detail = 'styledwind Abbe Constant directive';
+          completions.push(constItem);
         }
 
         return completions;
@@ -50,4 +57,39 @@ export function createDirectiveProvider() {
     },
     '@' // trigger character
   );
+}
+
+/**
+ * ฟังก์ชันช่วย: ตรวจสอบว่า Cursor อยู่ภายใน .xxx { ... } หรือไม่
+ * แนวทางง่าย ๆ: วิ่งตั้งแต่เริ่มไฟล์ถึงตำแหน่ง cursor แล้วนับเปิด-ปิดปีกกาที่ match กับ .xxx {
+ */
+function checkIfInsideClassBlock(
+  document: vscode.TextDocument,
+  position: vscode.Position
+): boolean {
+  // ดึงข้อความตั้งแต่บรรทัดแรกจนถึงตำแหน่งปัจจุบัน
+  const fullRange = new vscode.Range(new vscode.Position(0, 0), position);
+  const textUpToCursor = document.getText(fullRange);
+
+  // เราจะ parse เพื่อหา ".xxx {" แล้ว +1 stack, เจอ "}" -1 stack
+  // ถ้า stack > 0 แปลว่ายังไม่ปิด block -> เราอยู่ใน block
+  let stack = 0;
+
+  // แนวทาง Regex หาบล็อก class (simple)
+  //   ใช้ /(\.\w+\s*\{)|(\})/g  => group1 คือเปิด .xxx {, group2 คือปิด }
+  const regex = /(\.\w+\s*\{)|(\})/g;
+  let match;
+  while ((match = regex.exec(textUpToCursor)) !== null) {
+    if (match[1]) {
+      // เจอ .xxx {
+      stack++;
+    } else if (match[2]) {
+      // เจอ }
+      if (stack > 0) {
+        stack--;
+      }
+    }
+  }
+
+  return stack > 0;
 }

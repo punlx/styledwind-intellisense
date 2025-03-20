@@ -9,7 +9,11 @@
     },
     {
       "name": "support.type.property-name.css",
-      "match": "(?<=(@bind|@scope)\\s)([\\w-]+)"
+      "match": "(?<=(@bind|@scope|@const)\\s)([\\w-]+)"
+    },
+    {
+      "name": "support.type.property-name.css",
+      "match": "(?<=@use\\s)(.+)"
     },
 
     {
@@ -72,7 +76,7 @@
     },
     {
       "name": "keyword.control.at-rule.css",
-      "match": "(@scope|@bind)"
+      "match": "(@scope|@bind|@const|@use)"
     },
     {
       "name": "keyword.control.at-rule.media.css",
