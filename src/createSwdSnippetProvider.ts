@@ -1,3 +1,4 @@
+// createSwdSnippetProvider.ts
 import * as vscode from 'vscode';
 
 export function createSwdSnippetProvider() {

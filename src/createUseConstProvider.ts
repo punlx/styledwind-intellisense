@@ -1,3 +1,4 @@
+// createUseConstProvider.ts
 import * as vscode from 'vscode';
 
 export function createUseConstProvider() {
