@@ -7,6 +7,7 @@
       "name": "support.type.property-name.css",
       "match": "(--[\\w\\d-]+)"
     },
+
     {
       "name": "support.type.property-name.css",
       "match": "(?<=(@bind|@scope|@const)\\s)([\\w-]+)"
@@ -15,7 +16,14 @@
       "name": "support.type.property-name.css",
       "match": "(?<=@use\\s)(.+)"
     },
-
+    {
+      "name": "entity.other.attribute-name.class.css",
+      "match": "(?<=@query\\s)(.*?)(?=\\s*\\{)"
+    },
+    {
+      "name": "variable.other.constant.object.ts",
+      "match": "--\\$[a-zA-Z0-9_-]+"
+    },
     {
       "name": "styledwind.template",
       "begin": "(styled)(\\s*<[^>]*>)?(\\s*`)",
@@ -76,7 +84,7 @@
     },
     {
       "name": "keyword.control.at-rule.css",
-      "match": "(@scope|@bind|@const|@use)"
+      "match": "(@scope|@bind|@const|@use|@query)"
     },
     {
       "name": "keyword.control.at-rule.media.css",
