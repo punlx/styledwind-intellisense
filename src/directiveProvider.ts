@@ -72,29 +72,44 @@ function checkIfInsideClassBlock(
   document: vscode.TextDocument,
   position: vscode.Position
 ): boolean {
-  // ดึงข้อความตั้งแต่บรรทัดแรกจนถึงตำแหน่งปัจจุบัน
   const fullRange = new vscode.Range(new vscode.Position(0, 0), position);
   const textUpToCursor = document.getText(fullRange);
 
-  // เราจะ parse เพื่อหา ".xxx {" แล้ว +1 stack, เจอ "}" -1 stack
-  // ถ้า stack > 0 แปลว่ายังไม่ปิด block -> เราอยู่ใน block
-  let stack = 0;
+  // เราเก็บเฉพาะ stack ของ class block เท่านั้น (.xxx {)
+  const classOpenRegex = /\.\w+\s*\{/g;
+  const blockRegex = /\{|\}/g;
 
-  // แนวทาง Regex หาบล็อก class (simple)
-  //   ใช้ /(\.\w+\s*\{)|(\})/g  => group1 คือเปิด .xxx {, group2 คือปิด }
-  const regex = /(\.\w+\s*\{)|(\})/g;
+  let classOpenPositions: number[] = [];
   let match;
-  while ((match = regex.exec(textUpToCursor)) !== null) {
-    if (match[1]) {
-      // เจอ .xxx {
+
+  // หาตำแหน่งที่เปิด class block
+  while ((match = classOpenRegex.exec(textUpToCursor)) !== null) {
+    classOpenPositions.push(match.index);
+  }
+
+  // ถ้าไม่มี class block เลย
+  if (classOpenPositions.length === 0) {
+    return false;
+  }
+
+  // ใช้ stack ปกติสำหรับ { } แต่นับเฉพาะที่อยู่หลัง class เปิด
+  let stack = 0;
+  let lastClassOpenIndex = classOpenPositions[classOpenPositions.length - 1];
+
+  // slice เอาแค่ข้อความหลังจากเปิด .class { ล่าสุด
+  const afterClassText = textUpToCursor.slice(lastClassOpenIndex);
+
+  // นับ {} ในช่วงหลังจาก .class {
+  while ((match = blockRegex.exec(afterClassText)) !== null) {
+    if (match[0] === '{') {
       stack++;
-    } else if (match[2]) {
-      // เจอ }
-      if (stack > 0) {
-        stack--;
+    } else if (match[0] === '}') {
+      stack--;
+      if (stack === 0) {
+        return false; // ปิดครบแล้ว
       }
     }
   }
 
-  return stack > 0;
+  return stack > 0; // ยังเปิดอยู่
 }
