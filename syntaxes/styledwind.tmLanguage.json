@@ -4,25 +4,63 @@
   "injectionSelector": "L:source.ts",
   "patterns": [
     {
-      "name": "support.type.property-name.css",
-      "match": "(--[\\w\\d-]+)"
-    },
-
-    {
-      "name": "support.type.property-name.css",
-      "match": "(?<=(@bind|@scope|@const)\\s)([\\w-]+)"
-    },
-    {
-      "name": "support.type.property-name.css",
-      "match": "(?<=@use\\s)(.+)"
-    },
-    {
-      "name": "entity.other.attribute-name.class.css",
-      "match": "(?<=@query\\s)(.*?)(?=\\s*\\{)"
-    },
-    {
-      "name": "variable.other.constant.object.ts",
-      "match": "--\\&([\\w-]*)"
+      "name": "meta.styled.block",
+      "begin": "styled\\s*<\\{[^}]+}>`",
+      "end": "`",
+      "patterns": [
+        {
+          "name": "entity.other.attribute-name.class.css",
+          "match": "\\.[\\w-]*"
+        },
+        {
+          "name": "support.type.property-name.css",
+          "match": "(--[\\w\\d-]+)"
+        },
+        {
+          "name": "support.type.property-name.css",
+          "match": "(?<=(@bind|@scope|@const)\\s)([\\w-]+)"
+        },
+        {
+          "name": "support.type.property-name.css",
+          "match": "(?<=@use\\s)(.+)"
+        },
+        {
+          "name": "entity.other.attribute-name.class.css",
+          "match": "(?<=@query\\s)(.*?)(?=\\s*\\{)"
+        },
+        {
+          "name": "variable.other.constant.object.ts",
+          "match": "--\\&([\\w-]*)"
+        },
+        {
+          "name": "support.type.property-name.css",
+          "match": "([\\w-]+)\\s*\\["
+        },
+        {
+          "name": "support.function.misc.css",
+          "match": "\\$(([\\w-]+)\\s*\\[)"
+        },
+        {
+          "name": "entity.other.attribute-name.class.css",
+          "match": "(focus-visible|focus-within|hover|focus|target|active|before|after)"
+        },
+        {
+          "name": "keyword.control.at-rule.css",
+          "match": "(@scope|@bind|@const|@use|@query)"
+        },
+        {
+          "name": "keyword.control.at-rule.media.css",
+          "match": "(screen|container)"
+        },
+        {
+          "name": "keyword.other.unit.px.css",
+          "match": "(\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr))"
+        },
+        {
+          "name": "support.constant.property-value.css",
+          "match": "(?<=(\\[)|(\\[\\$[\\w-]+)\\s)[\\(\\,\\)\\w\\%\\d\\s\\+\\*/,.-]+"
+        }
+      ]
     },
     {
       "name": "styledwind.template",
@@ -69,34 +107,6 @@
           "include": "source.css"
         }
       ]
-    },
-    {
-      "name": "support.type.property-name.css",
-      "match": "([\\w-]+)\\s*\\["
-    },
-    {
-      "name": "support.function.misc.css",
-      "match": "\\$(([\\w-]+)\\s*\\[)"
-    },
-    {
-      "name": "entity.other.attribute-name.class.css",
-      "match": "(focus-visible|focus-within|hover|focus|target|active|before|after)"
-    },
-    {
-      "name": "keyword.control.at-rule.css",
-      "match": "(@scope|@bind|@const|@use|@query)"
-    },
-    {
-      "name": "keyword.control.at-rule.media.css",
-      "match": "(screen|container)"
-    },
-    {
-      "name": "keyword.other.unit.px.css",
-      "match": "(\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr))"
-    },
-    {
-      "name": "support.constant.property-value.css",
-      "match": "(?<=(\\[)|(\\[\\$[\\w-]+)\\s)[\\(\\,\\)\\w\\%\\d\\s\\+\\*/,.-]+"
     }
   ]
 }
