@@ -22,7 +22,7 @@
     },
     {
       "name": "variable.other.constant.object.ts",
-      "match": "--\\$[a-zA-Z0-9_-]+"
+      "match": "--\\&([\\w-]*)"
     },
     {
       "name": "styledwind.template",

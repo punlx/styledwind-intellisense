@@ -20,6 +20,7 @@ import { createColorProvider } from './colorProvider';
 import { createDirectiveProvider } from './directiveProvider';
 import { createSwdSnippetProvider } from './createSwdSnippetProvider';
 import { createUseConstProvider } from './createUseConstProvider';
+import { createLocalVarProvider } from './localVarProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -71,8 +72,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const bindClassProvider = createBindClassProvider();
   const swdSnippetProvider = createSwdSnippetProvider();
   const useConstProvider = createUseConstProvider();
+  const localVarProviderDisposable = createLocalVarProvider();
 
   context.subscriptions.push(
+    localVarProviderDisposable,
     bracketProvider,
     hoverProvider,
     reversePropProvider,
