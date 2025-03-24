@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-
+const indentUnit = '  ';
 // generateGeneric.ts
 function generateGeneric(sourceCode: string): string {
   // -----------------------------------------------------------------------------
@@ -214,17 +214,18 @@ function generateGeneric(sourceCode: string): string {
   // -----------------------------------------------------------------------------
   // 10.1) format constBlocks
   const formattedConstBlocks: string[][] = [];
+
   for (const block of constBlocks) {
     const temp: string[] = [];
     let firstLine = true;
     for (const line of block) {
       if (firstLine) {
-        temp.push(`\t${line}`);
+        temp.push(`${indentUnit}${line}`);
         firstLine = false;
       } else if (line === '}') {
-        temp.push(`\t${line}`);
+        temp.push(`${indentUnit}${line}`);
       } else {
-        temp.push(`\t\t${line}`);
+        temp.push(`${indentUnit}${indentUnit}${line}`);
       }
     }
     formattedConstBlocks.push(temp);
@@ -238,12 +239,12 @@ function generateGeneric(sourceCode: string): string {
       if (formattedBlockLines.length > 0) {
         formattedBlockLines.push('');
       }
-      formattedBlockLines.push(`\t${modifiedLine}`);
+      formattedBlockLines.push(`${indentUnit}${modifiedLine}`);
     } else if (modifiedLine === '}') {
-      formattedBlockLines.push(`\t${modifiedLine}`);
+      formattedBlockLines.push(`${indentUnit}${modifiedLine}`);
     } else {
       modifiedLine = modifiedLine.replace(/([\w-]+)\[\s*(.*?)\s*\]/g, '$1[$2]');
-      formattedBlockLines.push(`\t\t${modifiedLine}`);
+      formattedBlockLines.push(`${indentUnit}${indentUnit}${modifiedLine}`);
     }
   }
 
@@ -252,11 +253,11 @@ function generateGeneric(sourceCode: string): string {
 
   // @scope
   for (const s of scopeLines) {
-    finalLines.push(`\t${s}`);
+    finalLines.push(`${indentUnit}${s}`);
   }
   // @bind
   for (const b of bindLines) {
-    finalLines.push(`\t${b}`);
+    finalLines.push(`${indentUnit}${b}`);
   }
   if (scopeLines.length > 0 || bindLines.length > 0) {
     finalLines.push('');
@@ -296,7 +297,7 @@ function generateGeneric(sourceCode: string): string {
     let insideQuery = false;
 
     function addOneTab(line: string): string {
-      return '\t' + line;
+      return '${indentUnit}' + line;
     }
 
     for (const line of lines) {
