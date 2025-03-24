@@ -22,6 +22,7 @@ import { createSwdSnippetProvider } from './createSwdSnippetProvider';
 import { createUseConstProvider } from './createUseConstProvider';
 import { createLocalVarProvider } from './localVarProvider';
 import { createStyledwindThemeColorProvider } from './themePaletteColorProvider';
+import { generateGenericProvider } from './generateGenericProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -75,6 +76,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const useConstProvider = createUseConstProvider();
   const localVarProviderDisposable = createLocalVarProvider();
   const paletteProvider = createStyledwindThemeColorProvider();
+
   context.subscriptions.push(
     localVarProviderDisposable,
     bracketProvider,
@@ -89,7 +91,8 @@ export async function activate(context: vscode.ExtensionContext) {
     bindClassProvider,
     swdSnippetProvider,
     useConstProvider,
-    paletteProvider
+    paletteProvider,
+    generateGenericProvider
   );
 
   // Decorations

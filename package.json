@@ -13,6 +13,12 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "styledwind.generateGeneric",
+        "title": "Generate styledwind Generic"
+      }
+    ],
     "configuration": {
       "type": "object",
       "title": "Styledwind Intellisense Settings",
