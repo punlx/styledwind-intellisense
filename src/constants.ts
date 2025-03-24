@@ -739,6 +739,7 @@ export const cssValues: Record<string, string[]> = {
   /********************************************
    * Opacity, Pointer Events (PE)
    ********************************************/
+  opacity: ['0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1'],
   'pointer-events': [
     'auto',
     'none',
@@ -1149,7 +1150,7 @@ export const abbrMap: Record<string, string> = {
   'ovscr-beh-x': 'overscroll-behavior-x',
   'ovscr-beh-y': 'overscroll-behavior-y',
   rs: 'resize',
-
+  op: 'opacity',
   /********************************************
    * Opacity, Pointer Events, Cursor
    ********************************************/
