@@ -23,6 +23,7 @@ import { createLocalVarProvider } from './localVarProvider';
 import { createStyledwindThemeColorProvider } from './themePaletteColorProvider';
 import { generateGenericProvider } from './generateGenericProvider';
 import { createCssTsColorProvider, initPaletteMap } from './cssTsColorProvider';
+import { createModeSuggestionProvider } from './modeSuggestionProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -79,6 +80,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const localVarProviderDisposable = createLocalVarProvider();
   const paletteProvider = createStyledwindThemeColorProvider();
   const cssTsColorProviderDisposable = createCssTsColorProvider();
+  const commentModeSuggestionProvider = createModeSuggestionProvider();
+
   context.subscriptions.push(
     localVarProviderDisposable,
     bracketProvider,
@@ -94,7 +97,8 @@ export async function activate(context: vscode.ExtensionContext) {
     useConstProvider,
     paletteProvider,
     generateGenericProvider,
-    cssTsColorProviderDisposable
+    cssTsColorProviderDisposable,
+    commentModeSuggestionProvider
   );
 
   // Decorations
