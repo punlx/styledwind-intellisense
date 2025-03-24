@@ -1023,7 +1023,7 @@ export const colorAbbrSet = new Set([
   'bg', // background-color
   'c', // color
   'bd', // border (อาจจะโชว์สีสำหรับ border?)
-  'bdc', // border-color
+  'bd-c', // border-color
   'bdl',
   'bdl-c',
   'bdt',

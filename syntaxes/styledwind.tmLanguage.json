@@ -107,6 +107,17 @@
           "include": "source.css"
         }
       ]
+    },
+    {
+      "name": "meta.styled.block",
+      "begin": "(theme.palette\\(\\[)",
+      "end": "\\]\\);",
+      "patterns": [
+        {
+          "name": "entity.other.attribute-name.class.css",
+          "match": "(blue-100)"
+        }
+      ]
     }
   ]
 }

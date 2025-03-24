@@ -22,9 +22,13 @@ import { createUseConstProvider } from './createUseConstProvider';
 import { createLocalVarProvider } from './localVarProvider';
 import { createStyledwindThemeColorProvider } from './themePaletteColorProvider';
 import { generateGenericProvider } from './generateGenericProvider';
+import { createCssTsColorProvider, initPaletteMap } from './cssTsColorProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
+
+  // 1) โหลด palette จาก styledwind.theme.ts (ถ้าเจอ)
+  await initPaletteMap();
 
   let paletteColors: Record<string, Record<string, string>> = {};
   let screenDict: Record<string, string> = {};
@@ -74,7 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const useConstProvider = createUseConstProvider();
   const localVarProviderDisposable = createLocalVarProvider();
   const paletteProvider = createStyledwindThemeColorProvider();
-
+  const cssTsColorProviderDisposable = createCssTsColorProvider();
   context.subscriptions.push(
     localVarProviderDisposable,
     bracketProvider,
@@ -89,7 +93,8 @@ export async function activate(context: vscode.ExtensionContext) {
     swdSnippetProvider,
     useConstProvider,
     paletteProvider,
-    generateGenericProvider
+    generateGenericProvider,
+    cssTsColorProviderDisposable
   );
 
   // Decorations
