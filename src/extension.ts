@@ -7,8 +7,7 @@ import {
   parseThemeKeyframeDict,
   parseThemeSpacingDict,
 } from './parseTheme';
-import { createBracketProvider } from './suggestProviders'; // bracketProvider
-import { createHoverProvider } from './hoverProvider';
+import { createCSSValueSuggestProvider } from './cssValueSuggestProvider'; // bracketProvider
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations';
 import { createBreakpointProvider } from './breakpointProvider';
@@ -56,8 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   // provider ต่าง ๆ
-  const bracketProvider = createBracketProvider();
-  const hoverProvider = createHoverProvider(screenDict);
+  const bracketProvider = createCSSValueSuggestProvider();
   const reversePropProvider = createReversePropertyProvider();
 
   // ของใหม่: colorProvider แยกชัดเจน
@@ -80,7 +78,6 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     localVarProviderDisposable,
     bracketProvider,
-    hoverProvider,
     reversePropProvider,
     colorProvider, // ใหม่
     breakpointProvider,

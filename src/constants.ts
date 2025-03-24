@@ -135,6 +135,7 @@ export const cssValues: Record<string, string[]> = {
     '<percentage> <percentage>',
     // อาจเป็นค่าผสมได้เช่น "auto 50%"
   ],
+  'background-image': ['url("/")'],
   'background-repeat': ['repeat', 'repeat-x', 'repeat-y', 'no-repeat', 'space', 'round'],
   'background-clip': ['border-box', 'padding-box', 'content-box', 'text'],
   'background-origin': ['border-box', 'padding-box', 'content-box'],
@@ -172,10 +173,98 @@ export const cssValues: Record<string, string[]> = {
     // shorthand เช่น "1px solid #000", "thin dotted red"
     '<border-width>',
   ],
+  'border-style': [
+    'auto',
+    'none',
+    'hidden',
+    'dotted',
+    'dashed',
+    'solid',
+    'double',
+    'groove',
+    'ridge',
+    'inset',
+    'outset',
+  ],
   'border-left': ['<border-width> <border-style> <color>'],
+  'border-left-width': ['<border-width>'],
+  'border-left-style': [
+    'auto',
+    'none',
+    'hidden',
+    'dotted',
+    'dashed',
+    'solid',
+    'double',
+    'groove',
+    'ridge',
+    'inset',
+    'outset',
+  ],
+  'border-left-color': [
+    // shorthand เช่น "1px solid #000", "thin dotted red"
+    '<color>',
+  ],
   'border-top': ['<border-width> <border-style> <color>'],
+  'border-top-width': [
+    // shorthand เช่น "1px solid #000", "thin dotted red"
+    '<border-width>',
+  ],
+  'border-top-style': [
+    'auto',
+    'none',
+    'hidden',
+    'dotted',
+    'dashed',
+    'solid',
+    'double',
+    'groove',
+    'ridge',
+    'inset',
+    'outset',
+  ],
+  'border-top-color': [
+    // shorthand เช่น "1px solid #000", "thin dotted red"
+    '<color>',
+  ],
   'border-right': ['<border-width> <border-style> <color>'],
+  'border-right-width': [
+    // shorthand เช่น "1px solid #000", "thin dotted red"
+    '<border-width>',
+  ],
+  'border-right-style': [
+    'auto',
+    'none',
+    'hidden',
+    'dotted',
+    'dashed',
+    'solid',
+    'double',
+    'groove',
+    'ridge',
+    'inset',
+    'outset',
+  ],
+  'border-right-color': ['<color>'],
   'border-bottom': ['<border-width> <border-style> <color>'],
+  'border-bottom-width': ['<border-width>'],
+  'border-bottom-style': [
+    'auto',
+    'none',
+    'hidden',
+    'dotted',
+    'dashed',
+    'solid',
+    'double',
+    'groove',
+    'ridge',
+    'inset',
+    'outset',
+  ],
+  'border-bottom-color': [
+    // shorthand เช่น "1px solid #000", "thin dotted red"
+    '<color>',
+  ],
   'border-spacing': [
     '<length>', // สามารถเป็น "5px 10px" ก็ได้
   ],
@@ -268,12 +357,7 @@ export const cssValues: Record<string, string[]> = {
   /********************************************
    * Container Query
    ********************************************/
-  'container-type': [
-    'inline-size',
-    'block-size',
-    'size',
-    'normal', // จากสเปค container queries (W3C)
-  ],
+  'container-type': ['inline-size', 'block-size', 'size', 'normal'],
   // 'container' เป็น shorthand ของ container-type และ container-name
   container: [
     'none',
@@ -922,11 +1006,17 @@ export const spacingAbbrSet = new Set([
   // ถ้ามี abbr อื่น เช่น 'ol-width', 'bd-width' ฯลฯ ก็อาจเข้ากลุ่มนี้ด้วย
   // และ bd (border) ถ้าคุณต้องให้ใส่ความหนา => ใส่ได้เช่นกัน
   'bd', // บางที 'border' อาจมีความหนา => optional
-  'bdt',
-  'bdr',
-  'bdb',
-  'bdl',
   'bd-w',
+  'bdt',
+  'bdt-w',
+  'bdr',
+  'bdr-w',
+  'bdb',
+  'bdb-w',
+  'bdl',
+  'bdl-w',
+  'ol',
+  'ol-w',
 ]);
 
 export const colorAbbrSet = new Set([
@@ -934,6 +1024,17 @@ export const colorAbbrSet = new Set([
   'c', // color
   'bd', // border (อาจจะโชว์สีสำหรับ border?)
   'bdc', // border-color
+  'bdl',
+  'bdl-c',
+  'bdt',
+  'bdt-c',
+  'bdr',
+  'bdr-c',
+  'bdb',
+  'bdb-c',
+  'ol',
+  'ol-c',
+  'sd',
 ]);
 export const abbrMap: Record<string, string> = {
   ...moreStyleForSuggestion,
@@ -962,6 +1063,7 @@ export const abbrMap: Record<string, string> = {
    * Background
    ********************************************/
   bg: 'background-color',
+  'bg-img': 'background-image',
   'bg-pos': 'background-position',
   'bg-size': 'background-size',
   'bg-repeat': 'background-repeat',
@@ -979,21 +1081,41 @@ export const abbrMap: Record<string, string> = {
   bdb: 'border-bottom',
   bdw: 'border-width',
   bdc: 'border-color',
+  'bd-w': 'border-width',
+  'bd-c': 'border-color',
+  'bd-st': 'border-style',
+
+  'bdl-w': 'border-left-width',
+  'bdl-c': 'border-left-color',
+  'bdl-st': 'border-left-style',
+
+  'bdt-w': 'border-top-width',
+  'bdt-c': 'border-top-color',
+  'bdt-st': 'border-top-style',
+
+  'bdr-w': 'border-right-width',
+  'bdr-c': 'border-right-color',
+  'bdr-st': 'border-right-style',
+
+  'bdb-w': 'border-bottom-width',
+  'bdb-c': 'border-bottom-color',
+  'bdb-st': 'border-bottom-style',
+
   'bd-spacing': 'border-spacing',
   'bd-collapse': 'border-collapse',
   'bd-img': 'border-image',
   br: 'border-radius',
   ol: 'outline',
-  'ol-width': 'outline-width',
-  'ol-color': 'outline-color',
-  'ol-style': 'outline-style',
-  'ol-offset': 'outline-offset',
+  'ol-w': 'outline-width',
+  'ol-c': 'outline-color',
+  'ol-st': 'outline-style',
+  'ol-ofs': 'outline-offset',
 
   /********************************************
    * Box Shadow / Sizing
    ********************************************/
   sd: 'box-shadow',
-  sz: 'box-sizing',
+  bs: 'box-sizing',
 
   /********************************************
    * Color, Cursor
@@ -1004,9 +1126,9 @@ export const abbrMap: Record<string, string> = {
   /********************************************
    * Container Query
    ********************************************/
-  'cn-type': 'container-type',
-  cn: 'container',
-  'cn-name': 'container-name',
+  'ctn-type': 'container-type',
+  ctn: 'container',
+  'ctn-name': 'container-name',
 
   /********************************************
    * Columns / Gap
