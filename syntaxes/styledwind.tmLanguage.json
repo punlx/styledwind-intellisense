@@ -109,13 +109,17 @@
       ]
     },
     {
-      "name": "meta.styled.block",
+      "name": "meta.styled.theme",
       "begin": "(theme.palette\\(\\[)",
       "end": "\\]\\);",
       "patterns": [
         {
           "name": "entity.other.attribute-name.class.css",
-          "match": "(blue-100)"
+          "match": "#[0-9A-Fa-f]{6}"
+        },
+        {
+          "name": "support.type.property-name.css",
+          "match": "[\\w-]+"
         }
       ]
     }
