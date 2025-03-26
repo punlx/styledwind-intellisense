@@ -7,6 +7,7 @@ import {
   parseThemeKeyframeDict,
   parseThemeSpacingDict,
 } from './parseTheme';
+
 import { createCSSValueSuggestProvider } from './cssValueSuggestProvider'; // bracketProvider
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations';
@@ -24,6 +25,8 @@ import { createStyledwindThemeColorProvider } from './themePaletteColorProvider'
 import { generateGenericProvider } from './generateGenericProvider';
 import { createCssTsColorProvider, initPaletteMap } from './cssTsColorProvider';
 import { createModeSuggestionProvider } from './modeSuggestionProvider';
+// *** Import ghostSpacingDecorations
+import { initSpacingMap, updateSpacingDecorations } from './ghostSpacingDecorations';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -59,20 +62,14 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  // provider ต่าง ๆ
+  // 2) สร้าง provider ต่าง ๆ
   const bracketProvider = createCSSValueSuggestProvider();
   const reversePropProvider = createReversePropertyProvider();
-
-  // ของใหม่: colorProvider แยกชัดเจน
   const colorProvider = createColorProvider(paletteColors);
-
-  // ของเดิม: breakpoint, font, keyframe, spacing
   const breakpointProvider = createBreakpointProvider(screenDict);
   const fontProvider = createFontProvider(fontDict);
   const keyframeProvider = createKeyframeProvider(keyframeDict);
   const spacingProvider = createSpacingProvider(spacingDict);
-
-  //  directiveProvider
   const directiveProvider = createDirectiveProvider();
   const bindClassProvider = createBindClassProvider();
   const swdSnippetProvider = createSwdSnippetProvider();
@@ -86,7 +83,7 @@ export async function activate(context: vscode.ExtensionContext) {
     localVarProviderDisposable,
     bracketProvider,
     reversePropProvider,
-    colorProvider, // ใหม่
+    colorProvider,
     breakpointProvider,
     fontProvider,
     keyframeProvider,
@@ -101,21 +98,33 @@ export async function activate(context: vscode.ExtensionContext) {
     commentModeSuggestionProvider
   );
 
-  // Decorations
+  // 3) Init spacingMap => เพื่อใช้ใน ghostSpacingDecorations
+  //    เอา spacingDict ที่ parse ได้ -> ใส่ initSpacingMap
+  initSpacingMap(spacingDict);
+
+  // 4) Ghost Decorations
+
+  // 4.1) ถ้ามี active editor => เรียก updateDecorations & updateSpacingDecorations ทันที
   if (vscode.window.activeTextEditor) {
     updateDecorations(vscode.window.activeTextEditor);
+    updateSpacingDecorations(vscode.window.activeTextEditor);
   }
+
+  // 4.2) เมื่อเปลี่ยน active editor
   const changeEditorDisposable = vscode.window.onDidChangeActiveTextEditor((editor) => {
     if (editor) {
       updateDecorations(editor);
+      updateSpacingDecorations(editor);
     }
   });
   context.subscriptions.push(changeEditorDisposable);
 
+  // 4.3) เมื่อ text ในเอกสารปัจจุบันเปลี่ยน
   const changeDocDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
     const editor = vscode.window.activeTextEditor;
     if (editor && event.document === editor.document) {
       updateDecorations(editor);
+      updateSpacingDecorations(editor);
     }
   });
   context.subscriptions.push(changeDocDisposable);

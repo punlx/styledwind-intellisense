@@ -9,6 +9,25 @@
       "end": "`",
       "patterns": [
         {
+          "name": "meta.bracket.content.css",
+          "begin": "(?<=(\\[)|(\\[\\$[\\w-]+)\\s*)",
+          "end": "\\]",
+          "patterns": [
+            {
+              "name": "keyword.other.unit.px.css",
+              "match": "(?<![\\w-])\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr)(?![\\w-])"
+            },
+            {
+              "name": "support.variable.css",
+              "match": "--[\\w-]+"
+            },
+            {
+              "name": "support.constant.property-value.css",
+              "match": "\\b(?!\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr)\\b)[\\w-]+\\b"
+            }
+          ]
+        },
+        {
           "name": "entity.other.attribute-name.class.css",
           "match": "\\.[\\w-]*"
         },
@@ -51,21 +70,6 @@
         {
           "name": "keyword.control.at-rule.media.css",
           "match": "(screen|container)"
-        },
-        {
-          "name": "meta.bracket.content.css",
-          "begin": "(?<=(\\[)|(\\[\\$[\\w-]+)\\s*)",
-          "end": "\\]",
-          "patterns": [
-            {
-              "name": "keyword.other.unit.px.css",
-              "match": "(?<![\\w-])\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr)(?![\\w-])"
-            },
-            {
-              "name": "support.constant.property-value.css",
-              "match": "\\b(?!\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr)\\b)[\\w-]+\\b"
-            }
-          ]
         }
       ]
     },
