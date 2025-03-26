@@ -18,8 +18,12 @@
               "match": "(?<![\\w-])\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr)(?![\\w-])"
             },
             {
-              "name": "support.variable.css",
-              "match": "--[\\w-]+"
+              "name": "support.type.property-name.css",
+              "match": "(--[\\w\\d-]+)"
+            },
+            {
+              "name": "variable.other.constant.object.ts",
+              "match": "--\\&([\\w-]*)"
             },
             {
               "name": "support.constant.property-value.css",
