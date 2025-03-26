@@ -22,7 +22,7 @@
         },
         {
           "name": "support.type.property-name.css",
-          "match": "(?<=@use\\s)(.+)"
+          "match": "(?<=@use\\s)([\\w-]+(?:\\s+[\\w-]+)*)"
         },
         {
           "name": "entity.other.attribute-name.class.css",
