@@ -59,7 +59,7 @@
           "patterns": [
             {
               "name": "keyword.other.unit.px.css",
-              "match": "\\b\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr)\\b"
+              "match": "(?<![\\w-])\\d+(?:\\.\\d+)?(?:%|px|s|cm|mm|in|pt|pc|em|rem|vw|vh|vmin|vmax|ex|ch|lh|rlh|fr)(?![\\w-])"
             },
             {
               "name": "support.constant.property-value.css",
