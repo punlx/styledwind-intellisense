@@ -297,7 +297,7 @@ function generateGeneric(sourceCode: string): string {
     let insideQuery = false;
 
     function addOneTab(line: string): string {
-      return '${indentUnit}' + line;
+      return indentUnit + line;
     }
 
     for (const line of lines) {
