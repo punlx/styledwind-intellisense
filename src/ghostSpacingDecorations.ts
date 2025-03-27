@@ -71,7 +71,7 @@ export function updateSpacingDecorations(editor: vscode.TextEditor) {
             after: {
               contentText: ghostText,
               fontStyle: 'italic',
-              color: '#606060',
+              color: '#86593f',
             },
           },
         };
