@@ -4,11 +4,10 @@ import { spacingAbbrSet } from './constants';
 
 /**
  * createSpacingProvider:
- * - Trigger เมื่อผู้ใช้พิมพ์ "--" ใน .css.ts
- * - จับ abbr[...] -- (เช่น "mt[--"), แล้วดูว่า abbr in spacingAbbrSet ไหม
- * - ถ้าใช่ => Suggest spacing name (e.g. "spacing-1","spacing-2"...) พร้อม detail/doc
+ * - Trigger เมื่อผู้ใช้พิมพ์ "--" ใน .css.ts (ไม่เช็ค ab อีกแล้ว)
+ * - จับ pattern /([-\w&]+)\[.*?--$/
+ * - Suggest spacing name list จาก spacingDict
  */
-
 export function createSpacingProvider(spacingDict: Record<string, string>) {
   return vscode.languages.registerCompletionItemProvider(
     [
@@ -17,6 +16,7 @@ export function createSpacingProvider(spacingDict: Record<string, string>) {
     ],
     {
       provideCompletionItems(document, position) {
+        // เฉพาะไฟล์ .css.ts
         if (!document.fileName.endsWith('.css.ts')) {
           return;
         }
@@ -24,33 +24,36 @@ export function createSpacingProvider(spacingDict: Record<string, string>) {
         const lineText = document.lineAt(position).text;
         const textBeforeCursor = lineText.substring(0, position.character);
 
-        // จับ pattern (\w+)\[.*?--$
-        // เช่น "mt[--"
-        const regex = /([\w-]+)\[.*?--$/;
+        // จับ pattern /([-\w&]+)\[.*?--$/
+        // เช่น "mt[--", "--&test[--"
+        const regex = /([-\w&]+)\[.*?--$/;
         const match = regex.exec(textBeforeCursor);
         if (!match) {
           return;
         }
 
+        // *** เดิมจะเช็ค if(!spacingAbbrSet.has(ab)) return; -> ลบออก
+        // => อนุญาตทุก ab
+        // const ab = match[1]; // e.g. "mt", or "--&test"
+        // (ไม่ต้องใช้ ab แล้ว)
         const ab = match[1]; // e.g. "mt"
 
         // เช็คว่า ab อยู่ใน spacingAbbrSet ไหม
-        if (!spacingAbbrSet.has(ab)) {
+        if (!spacingAbbrSet.has(ab) && !ab.startsWith('--&')) {
           // ถ้าไม่ -> ไม่ต้อง suggest spacing
           return;
         }
-
-        // ถ้าใช่ -> Suggest spacing name list จาก spacingDict
+        // Suggest spacing จาก spacingDict
         const completions: vscode.CompletionItem[] = [];
 
         for (const spacingName of Object.keys(spacingDict)) {
           const spacingValue = spacingDict[spacingName]; // ex. '12px'
 
           const item = new vscode.CompletionItem(spacingName, vscode.CompletionItemKind.Value);
-          item.detail = spacingName; // เช่น "spacing-1"
-          item.documentation = spacingValue; // เช่น "12px"
+          item.detail = spacingName;
+          item.documentation = spacingValue;
 
-          // insertText = "spacing-1" หรืออะไรก็ว่าไป
+          // insertText = spacingName
           item.insertText = spacingName;
 
           completions.push(item);
