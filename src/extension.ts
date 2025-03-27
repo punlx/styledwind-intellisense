@@ -8,9 +8,9 @@ import {
   parseThemeSpacingDict,
 } from './parseTheme';
 
-import { createCSSValueSuggestProvider } from './cssValueSuggestProvider'; // bracketProvider
+import { createCSSValueSuggestProvider } from './cssValueSuggestProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
-import { updateDecorations } from './ghostTextDecorations';
+import { updateDecorations } from './ghostTextDecorations'; // ของเดิม (abbr ghost)
 import { createBreakpointProvider } from './breakpointProvider';
 import { createFontProvider } from './fontProvider';
 import { createKeyframeProvider } from './keyframeProvider';
@@ -25,8 +25,12 @@ import { createStyledwindThemeColorProvider } from './themePaletteColorProvider'
 import { generateGenericProvider } from './generateGenericProvider';
 import { createCssTsColorProvider, initPaletteMap } from './cssTsColorProvider';
 import { createModeSuggestionProvider } from './modeSuggestionProvider';
+
 // *** Import ghostSpacingDecorations
 import { initSpacingMap, updateSpacingDecorations } from './ghostSpacingDecorations';
+
+// *** Import ghostImportantDecorations
+import { updateImportantDecorations } from './ghostImportantDecorations';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -103,28 +107,31 @@ export async function activate(context: vscode.ExtensionContext) {
   initSpacingMap(spacingDict);
 
   // 4) Ghost Decorations
+  //   - abbr ghost: updateDecorations
+  //   - spacing ghost: updateSpacingDecorations
+  //   - important ghost: updateImportantDecorations
 
-  // 4.1) ถ้ามี active editor => เรียก updateDecorations & updateSpacingDecorations ทันที
   if (vscode.window.activeTextEditor) {
-    updateDecorations(vscode.window.activeTextEditor);
-    updateSpacingDecorations(vscode.window.activeTextEditor);
+    updateDecorations(vscode.window.activeTextEditor); // abbr ghost
+    updateSpacingDecorations(vscode.window.activeTextEditor); // spacing ghost
+    updateImportantDecorations(vscode.window.activeTextEditor); // "!important" ghost
   }
 
-  // 4.2) เมื่อเปลี่ยน active editor
   const changeEditorDisposable = vscode.window.onDidChangeActiveTextEditor((editor) => {
     if (editor) {
       updateDecorations(editor);
       updateSpacingDecorations(editor);
+      updateImportantDecorations(editor);
     }
   });
   context.subscriptions.push(changeEditorDisposable);
 
-  // 4.3) เมื่อ text ในเอกสารปัจจุบันเปลี่ยน
   const changeDocDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
     const editor = vscode.window.activeTextEditor;
     if (editor && event.document === editor.document) {
       updateDecorations(editor);
       updateSpacingDecorations(editor);
+      updateImportantDecorations(editor);
     }
   });
   context.subscriptions.push(changeDocDisposable);
