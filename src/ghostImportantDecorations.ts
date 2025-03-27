@@ -54,7 +54,7 @@ export function updateImportantDecorations(editor: vscode.TextEditor) {
           after: {
             contentText: 'important',
             fontStyle: 'italic',
-            color: '#0261af',
+            color: '#346e9e',
           },
         },
       };
