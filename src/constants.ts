@@ -961,51 +961,42 @@ export const cssValues: Record<string, string[]> = {
 
 const moreStyleForSuggestion = {
   f: 'font',
+  ty: 'typography',
   container: 'container (query)',
   screen: 'screen (query)',
-  hover: 'hover',
-  active: 'active',
-  focus: 'focus',
-  'focus-within': 'focus-within',
-  'focus-visible': 'focus-visible',
-  target: 'target',
+  hover: 'hover (state)',
+  active: 'active (state)',
+  focus: 'focus (state)',
+  'focus-within (state)': 'focus-within',
+  'focus-visible (state)': 'focus-visible',
+  target: 'target (state)',
 };
 
-export const spacingAbbrSet = new Set([
-  // Dimensions
+export const variableAbbrSet = new Set([
+  // Width / Height
   'w',
   'max-w',
   'min-w',
   'h',
   'max-h',
   'min-h',
+
   // Margin
   'm',
   'ml',
   'mr',
   'mb',
   'mt',
+
   // Padding
   'p',
   'pl',
   'pr',
   'pb',
   'pt',
-  // Border radius
-  'br', // border-radius
-  // border-spacing (สำหรับ table)
-  'bd-spacing',
-  // Gap
-  'gap',
-  'col-gap',
-  'row-gap',
-  'gd-gap',
-  'gd-col-gap',
-  'gd-row-gap',
-  // ทั้งหมดด้านบนคือ property ที่มัก set เป็น px/%/spacing
-  // ถ้ามี abbr อื่น เช่น 'ol-width', 'bd-width' ฯลฯ ก็อาจเข้ากลุ่มนี้ด้วย
-  // และ bd (border) ถ้าคุณต้องให้ใส่ความหนา => ใส่ได้เช่นกัน
-  'bd', // บางที 'border' อาจมีความหนา => optional
+
+  // Border
+  'bd',
   'bd-w',
   'bdt',
   'bdt-w',
@@ -1015,27 +1006,138 @@ export const spacingAbbrSet = new Set([
   'bdb-w',
   'bdl',
   'bdl-w',
+  'br', // border-radius
+  'bd-spacing', // border-spacing
+
+  // Outline
   'ol',
   'ol-w',
+  'ol-ofs',
+
+  // Gap
+  'gap',
+  'col-gap',
+  'row-gap',
+  'gd-gap',
+  'gd-col-gap',
+  'gd-row-gap',
+
+  // Font
+  'fs', // font-size
+  'fw', // font-weight
+  'lh', // line-height
+  'let-sp', // letter-spacing
+  'word-sp', // word-spacing
+
+  // Text
+  'tx-ind', // text-indent
+  'tx-shadow', // text-shadow
+  'tx-adj', // text-size-adjust
+
+  // Z-index
+  'z',
+
+  // Opacity
+  'op',
+
+  // Flex
+  'fx',
+  'fx-basis',
+  'basis',
+  'grow',
+  'shrink',
+
+  // Grid
+  'gd',
+  'gd-area',
+  'gd-auto-cols',
+  'gd-auto-rows',
+  'gd-auto-flow',
+  'gd-col',
+  'gd-col-end',
+  'gd-col-start',
+  'gd-row',
+  'gd-row-end',
+  'gd-row-start',
+  'gd-temp',
+  'gd-temp-cols',
+  'gd-temp-rows',
+
+  // Transform
+  'tf',
+  'tf-origin',
+  'per',
+  'per-origin',
+
+  // Transition
+  'tsn',
+  'tsn-delay',
+  'tsn-dur',
+
+  // Animation
+  'am',
+  'am-delay',
+  'am-dur',
+  'am-count',
+
+  // Shadow
+  'sd',
+
+  // Aspect Ratio
+  'ar',
+
+  // Resize
+  'rs',
+
+  // Position
+  'l',
+  't',
+  'r',
+  'b',
+
+  // Container
+  'ctn-type',
+  'ctn-name',
 ]);
 
 export const colorAbbrSet = new Set([
+  // พื้นหลังและสีตัวอักษร
   'bg', // background-color
   'c', // color
-  'bd', // border (อาจจะโชว์สีสำหรับ border?)
+
+  // Border
+  'bd', // border (อาจประกอบด้วย border-color)
   'bd-c', // border-color
-  'bdl',
-  'bdl-c',
-  'bdt',
-  'bdt-c',
-  'bdr',
-  'bdr-c',
-  'bdb',
-  'bdb-c',
-  'ol',
-  'ol-c',
-  'sd',
+  'bdl', // border-left
+  'bdl-c', // border-left-color
+  'bdt', // border-top
+  'bdt-c', // border-top-color
+  'bdr', // border-right
+  'bdr-c', // border-right-color
+  'bdb', // border-bottom
+  'bdb-c', // border-bottom-color
+
+  // Outline
+  'ol', // outline
+  'ol-c', // outline-color
+
+  // Shadow ที่ใส่สีได้
+  'sd', // box-shadow
+  'tx-sd', // text-shadow
+
+  // Text decoration ที่มีสีได้
+  'tx-decor-color', // text-decoration-color
+
+  // Filter ที่ใช้สีได้ เช่น drop-shadow
+  'fil', // filter (รองรับ filter ที่มีสี เช่น drop-shadow)
+  'bf', // backdrop-filter (บางค่ามีสี เช่น drop-shadow)
+  '-webkit-bf', // -webkit-backdrop-filter
+
+  // Mask / Clip-path บางค่าใช้สีได้ (เช่น mask-color, SVG mask ที่ใช้ fill)
+  'mask', // mask (รวม mask-color)
+  '-webkit-mask', // -webkit-mask
 ]);
+
 export const abbrMap: Record<string, string> = {
   ...moreStyleForSuggestion,
   /********************************************

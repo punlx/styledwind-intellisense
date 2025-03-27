@@ -28,8 +28,8 @@ export function createFontProvider(fontDict: Record<string, string>) {
         const textBeforeCursor = lineText.substring(0, position.character);
 
         // ตรวจ pattern f[$
-        // เช่น "f["
-        const match = /f\[$/.exec(textBeforeCursor);
+        // เช่น "ty["
+        const match = /ty\[$/.exec(textBeforeCursor);
         if (!match) {
           return;
         }

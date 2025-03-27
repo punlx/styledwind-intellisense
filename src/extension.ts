@@ -2,19 +2,19 @@
 import * as vscode from 'vscode';
 import {
   parseThemePaletteFull,
-  parseThemeScreenDict,
-  parseThemeFontDict,
+  parseThemeBreakpointDict,
+  parseThemeTypographyDict,
   parseThemeKeyframeDict,
-  parseThemeSpacingDict,
+  parseThemeVariableDict,
 } from './parseTheme';
 
 import { createCSSValueSuggestProvider } from './cssValueSuggestProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations'; // ของเดิม (abbr ghost)
 import { createBreakpointProvider } from './breakpointProvider';
-import { createFontProvider } from './fontProvider';
+import { createFontProvider } from './typographyProvider';
 import { createKeyframeProvider } from './keyframeProvider';
-import { createSpacingProvider } from './spacingProvider';
+import { createSpacingProvider } from './variableProvider';
 import { createBindClassProvider } from './createBindClassProvider';
 import { createColorProvider } from './colorProvider';
 import { createDirectiveProvider } from './directiveProvider';
@@ -56,10 +56,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // parse
         paletteColors = parseThemePaletteFull(themeFilePath);
-        screenDict = parseThemeScreenDict(themeFilePath);
-        fontDict = parseThemeFontDict(themeFilePath);
+        screenDict = parseThemeBreakpointDict(themeFilePath);
+        fontDict = parseThemeTypographyDict(themeFilePath);
         keyframeDict = parseThemeKeyframeDict(themeFilePath);
-        spacingDict = parseThemeSpacingDict(themeFilePath);
+        spacingDict = parseThemeVariableDict(themeFilePath);
       }
     } catch (err) {
       console.error('Error parse theme =>', err);

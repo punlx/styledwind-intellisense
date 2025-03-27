@@ -18,8 +18,8 @@ export function parseThemePaletteFull(
   if (!fs.existsSync(themeFilePath)) return paletteMap;
 
   const content = fs.readFileSync(themeFilePath, 'utf8');
-  const mainRegex = /theme\.palette\s*\(\s*\[(?<inside>[\s\S]*?)\]\s*\)/m;
-  const match = mainRegex.exec(content);
+  const regPalette = /theme\.palette\s*\(\s*\[(?<inside>[\s\S]*?)\]\s*\)/m;
+  const match = regPalette.exec(content);
   if (!match?.groups?.inside) return paletteMap;
 
   const inside = match.groups.inside;
@@ -65,13 +65,13 @@ export function parseThemePaletteFull(
  * parseThemeScreenDict:
  *  - หา theme.screen({...}) => { sm:'max-w[700px]', md:'min-w[900px]'...}
  */
-export function parseThemeScreenDict(themeFilePath: string): Record<string, string> {
+export function parseThemeBreakpointDict(themeFilePath: string): Record<string, string> {
   const dict: Record<string, string> = {};
   if (!fs.existsSync(themeFilePath)) return dict;
 
   const content = fs.readFileSync(themeFilePath, 'utf8');
-  const regScreens = /theme\.screen\s*\(\s*\{([\s\S]*?)\}\s*\)/m;
-  const mm = regScreens.exec(content);
+  const regBreakpoint = /theme\.breakpoint\s*\(\s*\{([\s\S]*?)\}\s*\)/m;
+  const mm = regBreakpoint.exec(content);
   if (!mm) return dict;
 
   const body = mm[1].trim();
@@ -93,13 +93,13 @@ export function parseThemeScreenDict(themeFilePath: string): Record<string, stri
  * parseThemeFontDict:
  *  - หา theme.font({...}) => { 'display-1': 'fs[22px] fw[500]', ... }
  */
-export function parseThemeFontDict(themeFilePath: string): Record<string, string> {
+export function parseThemeTypographyDict(themeFilePath: string): Record<string, string> {
   const dict: Record<string, string> = {};
   if (!fs.existsSync(themeFilePath)) return dict;
 
   const content = fs.readFileSync(themeFilePath, 'utf8');
-  const regFont = /theme\.font\s*\(\s*\{([\s\S]*?)\}\s*\)/m;
-  const mm = regFont.exec(content);
+  const regTypography = /theme\.typography\s*\(\s*\{([\s\S]*?)\}\s*\)/m;
+  const mm = regTypography.exec(content);
   if (!mm) return dict;
 
   const body = mm[1].trim();
@@ -153,13 +153,13 @@ export function parseThemeKeyframeDict(themeFilePath: string): Record<string, st
  * parseThemeSpacingDict:
  *  - หา theme.spacing({...}) => { 'spacing-1': '12px', ... }
  */
-export function parseThemeSpacingDict(themeFilePath: string): Record<string, string> {
+export function parseThemeVariableDict(themeFilePath: string): Record<string, string> {
   const dict: Record<string, string> = {};
   if (!fs.existsSync(themeFilePath)) return dict;
 
   const content = fs.readFileSync(themeFilePath, 'utf8');
-  const regSpacing = /theme\.spacing\s*\(\s*\{([\s\S]*?)\}\s*\)/m;
-  const mm = regSpacing.exec(content);
+  const regVariable = /theme\.variable\s*\(\s*\{([\s\S]*?)\}\s*\)/m;
+  const mm = regVariable.exec(content);
   if (!mm) return dict;
 
   const body = mm[1].trim();

@@ -1,6 +1,6 @@
 // spacingProvider.ts
 import * as vscode from 'vscode';
-import { spacingAbbrSet } from './constants';
+import { variableAbbrSet } from './constants';
 
 /**
  * createSpacingProvider:
@@ -39,7 +39,7 @@ export function createSpacingProvider(spacingDict: Record<string, string>) {
         const ab = match[1]; // e.g. "mt"
 
         // เช็คว่า ab อยู่ใน spacingAbbrSet ไหม
-        if (!spacingAbbrSet.has(ab) && !ab.startsWith('--&')) {
+        if (!variableAbbrSet.has(ab) && !ab.startsWith('--&')) {
           // ถ้าไม่ -> ไม่ต้อง suggest spacing
           return;
         }
