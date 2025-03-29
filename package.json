@@ -2,7 +2,7 @@
   "name": "styledwind-intellisense",
   "displayName": "Styledwind Intellisense",
   "description": "VSCode Intellisense (Autocompletion) for *.css.ts files in Styledwind",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "publisher": "punlx",
   "engines": {
     "vscode": "^1.80.0"
@@ -16,7 +16,7 @@
     "commands": [
       {
         "command": "styledwind.generateGeneric",
-        "title": "Generate styledwind Generic"
+        "title": "Generate Styledwind Generic"
       }
     ],
     "configuration": {
