@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-const indentUnit = '  ';
+export const indentUnit = '  ';
 // generateGeneric.ts
 function generateGeneric(sourceCode: string): string {
   // -----------------------------------------------------------------------------

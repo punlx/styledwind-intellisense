@@ -1,5 +1,7 @@
 // createSwdSnippetProvider.ts
 import * as vscode from 'vscode';
+import * as path from 'path';
+import { indentUnit } from './generateGenericProvider';
 
 export function createSwdSnippetProvider() {
   return vscode.languages.registerCompletionItemProvider(
@@ -23,6 +25,9 @@ export function createSwdSnippetProvider() {
           return;
         }
 
+        // ดึงชื่อไฟล์มาตัด ".css.ts" ออก
+        const fileName = path.basename(document.fileName, '.css.ts');
+
         // 4) สร้าง snippet
         const snippetItem = new vscode.CompletionItem(
           'create styledwind template',
@@ -31,8 +36,12 @@ export function createSwdSnippetProvider() {
         snippetItem.filterText = 'swdc'; // ให้ VSCode จับ match กับ "swdc"
 
         const snippet = new vscode.SnippetString(
-          `export const css = styled<{}>\`
-\t@scope \${1}
+          `import { styled } from 'styledwindjs'
+
+export const ${fileName}css = styled<{  }>\`
+${indentUnit}@scope ${fileName}
+
+${indentUnit}\${1}
 \`;
 `
         );
@@ -46,8 +55,6 @@ export function createSwdSnippetProvider() {
         return [snippetItem];
       },
     },
-    // ถ้าอยากให้ auto trigger ตอนพิมพ์ d
-    // แต่ถ้าไม่ใส่ ก็ใช้ Ctrl+Space ได้
     'c'
   );
 }
