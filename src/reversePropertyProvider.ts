@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { abbrMap } from './constants';
 
 /**
- * เราสร้าง reverseMap จาก 'background-color' => 'bg', 'border' => 'bd', ฯลฯ
+ * สร้าง reverseMap จาก 'background-color' => 'bg', 'border' => 'bd', ฯลฯ
  * เพื่อให้เวลาผู้ใช้เลือก property แบบเต็ม จะ insert abbr ลงไปแทน
  */
 const reverseMap: Record<string, string> = {};
@@ -15,11 +15,60 @@ const reverseMap: Record<string, string> = {};
 })();
 
 /**
+ * ฟังก์ชันสำหรับตรวจสอบว่า cursor ปัจจุบันอยู่ในบริบทไหน
+ * - นับจำนวนการเปิด/ปิด `{}`, `()`, `[]`
+ * - ต้องการให้ suggestion แสดงเมื่ออยู่ใน {} หรือ () และไม่ได้อยู่ใน []
+ */
+function checkContext(document: vscode.TextDocument, position: vscode.Position) {
+  const textUpToPosition = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
+
+  let bracketCount = 0; // for [ ]
+  let curlyCount = 0; // for { }
+  let parenCount = 0; // for ( )
+
+  for (let i = 0; i < textUpToPosition.length; i++) {
+    const char = textUpToPosition[i];
+
+    switch (char) {
+      case '[':
+        bracketCount++;
+        break;
+      case ']':
+        if (bracketCount > 0) bracketCount--;
+        break;
+      case '{':
+        curlyCount++;
+        break;
+      case '}':
+        if (curlyCount > 0) curlyCount--;
+        break;
+      case '(':
+        parenCount++;
+        break;
+      case ')':
+        if (parenCount > 0) parenCount--;
+        break;
+      default:
+        break;
+    }
+  }
+
+  const insideSquareBracket = bracketCount > 0;
+  const insideCurlyOrParen = curlyCount > 0 || parenCount > 0;
+
+  return {
+    insideCurlyOrParen,
+    insideSquareBracket,
+  };
+}
+
+/**
  * createReversePropertyProvider():
- * - Trigger: อาจให้ทำงานทุกครั้งที่ user พิมพ์ตัวอักษร (ไม่กำหนด trigger character เฉพาะ)
- * - ถ้าขึ้นอยู่กับ VSCode setting, user ต้องกด Ctrl+Space เพื่อเรียก suggest
- * - Logic: match prefix text => suggest property ที่ขึ้นต้นด้วย prefix
- * - insertText = abbr (เช่น user เลือก background-color => ได้ 'bg')
+ * - Trigger: ทำงานเมื่อพิมพ์ตัวอักษร (หรือเรียก Ctrl+Space)
+ * - Logic:
+ *   1) แสดง Suggest เฉพาะเมื่ออยู่ใน {} หรือ () และไม่อยู่ใน []
+ *   2) ไม่แสดงในบรรทัดที่มี @use
+ *   3) Suggest property ที่ขึ้นต้นด้วย prefix แล้วแทนด้วย abbr
  */
 export function createReversePropertyProvider() {
   return vscode.languages.registerCompletionItemProvider(
@@ -29,45 +78,65 @@ export function createReversePropertyProvider() {
     ],
     {
       provideCompletionItems(document, position) {
-        // เงื่อนไขว่าเฉพาะไฟล์ *.css.ts
-        if (!document.fileName.endsWith('.css.ts')) return;
+        // แสดงเฉพาะไฟล์ *.css.ts
+        if (!document.fileName.endsWith('.css.ts')) {
+          return;
+        }
 
-        // ข้อความก่อน cursor
+        // ข้อความในบรรทัดปัจจุบัน
         const lineText = document.lineAt(position).text;
+
+        // 1) ถ้าบรรทัดปัจจุบันมี '@use' ให้ไม่แสดง Suggest
+        if (lineText.includes('@use')) {
+          return;
+        }
+
+        // 2) ตรวจสอบ context
+        const { insideCurlyOrParen, insideSquareBracket } = checkContext(document, position);
+
+        // ต้องอยู่ใน {} หรือ () และไม่อยู่ใน []
+        if (!insideCurlyOrParen || insideSquareBracket) {
+          return;
+        }
+
+        // ข้อความในบรรทัดปัจจุบันก่อน cursor
         const textBeforeCursor = lineText.substring(0, position.character);
 
-        // แยก token สุดท้าย (เช่น user กำลังพิม 'back' => match property 'background-color')
-        // ตัวอย่างง่าย ๆ: ใช้ regex เอา "word" ล่าสุด
+        // ใช้ regex หาคำล่าสุดที่เป็นตัวอักษร (a-zA-Z0-9_) หรือขีด (-)
         const wordMatch = /([\w-]+)$/.exec(textBeforeCursor);
-        if (!wordMatch) return;
+        if (!wordMatch) {
+          return;
+        }
 
-        const prefix = wordMatch[1]; // e.g. "b" หรือ "bac" หรือ "backg"
-        if (!prefix) return;
+        const prefix = wordMatch[1];
+        if (!prefix) {
+          return;
+        }
 
-        // หา property name (ตัวเต็ม) ที่ขึ้นต้นด้วย prefix
-        // ถ้าคุณอยากทำ fuzzy match ก็ประยุกต์
+        // 3) หา property name (ตัวเต็ม) ที่ขึ้นต้นด้วย prefix
         const matchingProps = Object.keys(reverseMap).filter((propName) =>
           propName.startsWith(prefix)
         );
-        if (!matchingProps.length) return;
+        if (matchingProps.length === 0) {
+          return;
+        }
 
         // สร้าง CompletionItems
         return matchingProps.map((propName) => {
-          const abbr = reverseMap[propName]; // e.g. background-color => bg
+          const abbr = reverseMap[propName];
           const item = new vscode.CompletionItem(propName, vscode.CompletionItemKind.Property);
           item.detail = `Styledwind: abbr => ${abbr}`;
-          // แทรก abbr ลงไปแทน prefix
-          // โดยต้องแทน prefix เดิม (เช่น "backgr" 6 ตัวอักษร)
+
+          // ระบุ range ที่จะถูกแทนด้วย abbr (แทน prefix)
           const replaceRange = new vscode.Range(
             position.line,
-            position.character - prefix.length, // เริ่มตั้งแต่ prefix
+            position.character - prefix.length,
             position.line,
             position.character
           );
           item.range = replaceRange;
-
-          // set insertText
           item.insertText = abbr;
+
           return item;
         });
       },

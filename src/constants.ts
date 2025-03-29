@@ -1,5 +1,6 @@
 // constants.ts
 export const cssValues: Record<string, string[]> = {
+  all: ['initial', 'inherit', 'unset', 'revert', 'revert-layer'],
   /********************************************
    * Alignment, Box, and Display
    ********************************************/
@@ -112,7 +113,7 @@ export const cssValues: Record<string, string[]> = {
   /********************************************
    * Background
    ********************************************/
-  'background-color': ['<color>', 'transparent', 'currentColor', 'inherit', 'initial', 'unset'],
+  'background-color': ['<color>', 'transparent', 'currentcolor', 'inherit', 'initial', 'unset'],
   'background-position': [
     'left top',
     'left center',
@@ -314,7 +315,7 @@ export const cssValues: Record<string, string[]> = {
   /********************************************
    * Color, Cursor
    ********************************************/
-  color: ['<color>', 'currentColor', 'inherit', 'initial', 'unset'],
+  color: ['<color>', 'currentcolor', 'inherit', 'initial', 'unset'],
   cursor: [
     'auto',
     'default',
@@ -1140,6 +1141,7 @@ export const colorAbbrSet = new Set([
 
 export const abbrMap: Record<string, string> = {
   ...moreStyleForSuggestion,
+  a: 'all',
   /********************************************
    * Alignment, Box, and Display
    ********************************************/
