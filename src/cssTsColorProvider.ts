@@ -14,15 +14,10 @@ import { namedColorHex } from './constants';
 let paletteMap: Record<string, Record<string, string>> = {};
 
 /**
- * กลุ่ม A: value ใน [] เป็น “สี” เพียว ๆ
- * เช่น bg[red], c[#fff], bd-c[red], ol-c[#000], ...
+ * groupA: value คือสีเพียว ๆ
+ * groupB: value อาจมีหลาย token เช่น "2px solid red"
  */
 const groupA = new Set(['bg', 'c', 'bd-c', 'bdl-c', 'bdt-c', 'bdr-c', 'bdb-c', 'ol-c']);
-
-/**
- * กลุ่ม B: value อาจมีหลาย token เช่น "2px solid red", "2px dashed --blue-100"
- * เช่น bd, bdl, bdt, bdr, bdb, ol, sd
- */
 const groupB = new Set(['bd', 'bdl', 'bdt', 'bdr', 'bdb', 'ol', 'sd']);
 
 /**
@@ -42,8 +37,9 @@ export async function initPaletteMap() {
 /**
  * createCssTsColorProvider:
  *  - ทำงานเฉพาะไฟล์ *.css.ts (ต้องเป็น language=typescript, scheme=file)
- *  - ใช้ DocumentColorProvider เพื่อแสดง swatch สี ตาม pattern (\w+)\[([^\]]+)\]
+ *  - ใช้ DocumentColorProvider เพื่อแสดง swatch สี ตาม pattern /([-\w&]+)\[([^\]]+)\]/g
  *    ex. "bg[--blue-100]", "c[#ffffff]", "bd-c[red]", "bd[2px solid red]"
+ *    หรือ "--&color[red]"
  */
 export function createCssTsColorProvider() {
   return vscode.languages.registerColorProvider(
@@ -57,32 +53,33 @@ export function createCssTsColorProvider() {
 }
 
 class CssTsColorProvider implements vscode.DocumentColorProvider {
-  provideDocumentColors(
-    document: vscode.TextDocument,
-    token: vscode.CancellationToken
-  ): vscode.ColorInformation[] {
+  provideDocumentColors(document: vscode.TextDocument): vscode.ColorInformation[] {
     // (1) หา comment // styledwind mode: xxx
     const docText = document.getText();
     const modeMatch = /\/\/\s*styledwind\s*mode:\s*(\w+)/.exec(docText);
-    let mode: string | undefined = undefined;
+    let mode: string | undefined;
     if (modeMatch) {
-      mode = modeMatch[1]; // ex. "dark","light","dim"
+      mode = modeMatch[1]; // ex. "dark", "light", "dim"
     }
 
-    // (2) จับ pattern (\w+)\[([^\]]+)\]
-    const pattern = /(\w+)\[([^\]]+)\]/g;
+    // (2) จับ pattern /([-\w&]+)\[([^\]]+)\]/g
+    //    เดิมคือ (\w+)\[([^\]]+)\] => ไม่รองรับ --&xxx
+    const pattern = /([-\w&]+)\[([^\]]+)\]/g;
     const colorInfos: vscode.ColorInformation[] = [];
+
     let match: RegExpExecArray | null;
-
     while ((match = pattern.exec(docText)) !== null) {
-      const ab = match[1]; // ex. "bg", "bd", "bd-c", "ol", ...
-      const val = match[2]; // ex. "--blue-100", "#fff", "2px solid red", ...
+      const ab = match[1]; // ex. "bg", "bd-c", "--&color", ...
+      const val = match[2]; // ex. "red", "#fff", "2px solid red", "--blue-100"
 
-      // (3) parse ให้ได้ "ColorToken[]" = [{ color:vscode.Color, startOffset:..., endOffset:... }, ...]
-      const colorTokens = parseValue(ab, val, mode, match.index, document);
+      // position ของ ab[...] ในไฟล์
+      const matchIndex = match.index;
 
-      // (4) สร้าง ColorInformation
-      for (const ct of colorTokens) {
+      // parse => ได้ ColorToken[]
+      const tokens = parseValue(ab, val, mode, matchIndex, document);
+
+      // สร้าง ColorInformation
+      for (const ct of tokens) {
         colorInfos.push(
           new vscode.ColorInformation(
             new vscode.Range(
@@ -98,18 +95,14 @@ class CssTsColorProvider implements vscode.DocumentColorProvider {
     return colorInfos;
   }
 
-  provideColorPresentations(
-    color: vscode.Color,
-    context: any,
-    token: vscode.CancellationToken
-  ): vscode.ColorPresentation[] {
-    // user ปรับสี -> #rrggbb
+  provideColorPresentations(color: vscode.Color): vscode.ColorPresentation[] {
+    // user ปรับสี => #rrggbb
     const hex = toHexRGB(color);
     return [new vscode.ColorPresentation(hex)];
   }
 }
 
-/** โครงสร้างเก็บ color + offset ของ token ที่เป็นสี */
+/** โครงสร้างเก็บ color + offset */
 interface ColorToken {
   color: vscode.Color;
   startOffset: number;
@@ -118,72 +111,71 @@ interface ColorToken {
 
 /**
  * parseValue:
- *  - แยกตาม group A/B
- *  - group A => parse ทั้ง val เป็นสีเดียว
- *  - group B => แยก val ด้วย space => parse token ไหนที่เป็นสี
- *  - คำนวณ offset ใน doc (token wise)
+ *  - ถ้า ab.startsWith('--&') => parse val เป็นสีเพียว (single token)
+ *  - ถ้า groupA.has(ab) => parse single token
+ *  - ถ้า groupB.has(ab) => split space
+ *  - else => ไม่ parse
  */
 function parseValue(
   ab: string,
   val: string,
   mode: string | undefined,
-  matchIndex: number, // position ของ ab[...]
+  matchIndex: number,
   document: vscode.TextDocument
 ): ColorToken[] {
-  if (groupA.has(ab)) {
-    // group A => ทั้ง val ควรเป็นสีเพียว ๆ
+  // (A) ถ้า ab ขึ้นต้นด้วย '--&'
+  if (ab.startsWith('--&')) {
     const c = getColorFromToken(val, mode);
     if (c) {
-      // offset = (matchIndex + ab.length + 1) for start
-      const startOff = matchIndex + ab.length + 1; // +1 คือ '['
+      const startOff = matchIndex + ab.length + 1; // +1 for '['
       const endOff = startOff + val.length;
       return [{ color: c, startOffset: startOff, endOffset: endOff }];
     }
     return [];
-  } else if (groupB.has(ab)) {
-    // group B => อาจมีหลาย token: "2px solid red"
-    // เราจะ split ด้วย space
-    // ถ้าต้องการ robust กว่านี้ (เช่น regex จับ #xxx, --xxx) ก็ปรับ
-    const tokens = val.split(/\s+/);
-    let colorTokens: ColorToken[] = [];
+  }
 
-    // เพื่อคำนวณ offset ของ token แต่ละตัวใน val
-    // val ex. "2px solid red"
-    // start offset ใน doc = matchIndex + ab.length + 1
+  // (B) group A => val เป็นสีเดี่ยว
+  if (groupA.has(ab)) {
+    const c = getColorFromToken(val, mode);
+    if (c) {
+      const startOff = matchIndex + ab.length + 1;
+      const endOff = startOff + val.length;
+      return [{ color: c, startOffset: startOff, endOffset: endOff }];
+    }
+    return [];
+  }
+
+  // (C) group B => split space => parse
+  if (groupB.has(ab)) {
+    const tokens = val.split(/\s+/);
+    const results: ColorToken[] = [];
     let currentPos = 0;
-    const baseOffset = matchIndex + ab.length + 1; // '['
+    const baseOffset = matchIndex + ab.length + 1;
 
     for (const tk of tokens) {
       const c = getColorFromToken(tk, mode);
       if (c) {
-        // token tk มีสี
         const startOff = baseOffset + currentPos;
-        // tk.length
         const endOff = startOff + tk.length;
-
-        colorTokens.push({ color: c, startOffset: startOff, endOffset: endOff });
+        results.push({ color: c, startOffset: startOff, endOffset: endOff });
       }
-
-      // +1 เนื่องจากเรา split ด้วย space => "2px" + " " => 5 chars
-      currentPos += tk.length + 1;
+      currentPos += tk.length + 1; // +1 => space
     }
-
-    return colorTokens;
-  } else {
-    // ไม่อยู่ใน group A หรือ B => ไม่ parse
-    return [];
+    return results;
   }
+
+  // (D) ไม่เข้ากลุ่ม => ไม่ parse
+  return [];
 }
 
 /**
  * getColorFromToken:
- *   - ถ้าเป็น "--xxxx" => ถ้ามี mode => paletteMap[xxxx][mode], ถ้าไม่มี mode => undefined
- *   - ถ้าเป็น "#xxxxxx" => parseHex
- *   - ถ้าเป็น named color => parse dict
- *   - else => undefined
+ *  - ถ้า token = "--xxx" => parse theme color
+ *  - ถ้า token = "#xxx" => parse hex
+ *  - ถ้า namedColorHex => parse
  */
 function getColorFromToken(token: string, mode?: string): vscode.Color | undefined {
-  // (A) --xxx
+  // (1) Theme color => "--xxx"
   if (token.startsWith('--')) {
     if (!mode) return undefined;
     const key = token.replace(/^--/, '');
@@ -193,12 +185,13 @@ function getColorFromToken(token: string, mode?: string): vscode.Color | undefin
     if (!colorHex) return undefined;
     return parseHexColor(colorHex);
   }
-  // (B) #xxxx => parse hex
+
+  // (2) Hex => "#xxxxxx"
   if (token.startsWith('#')) {
     return parseHexColor(token);
   }
-  // (C) named color => dict
 
+  // (3) Named color => namedColorHex
   const lower = token.toLowerCase();
   if (namedColorHex[lower]) {
     return parseHexColor(namedColorHex[lower]);
@@ -209,7 +202,7 @@ function getColorFromToken(token: string, mode?: string): vscode.Color | undefin
 
 /**
  * parseHexColor => vscode.Color
- * รองรับ #rgb / #rgba / #rrggbb / #rrggbbaa
+ *  รองรับ #rgb / #rgba / #rrggbb / #rrggbbaa
  */
 function parseHexColor(hex: string): vscode.Color | undefined {
   const raw = hex.replace('#', '');
