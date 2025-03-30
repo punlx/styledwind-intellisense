@@ -1,6 +1,7 @@
 // cssTsColorProvider.ts
 import * as vscode from 'vscode';
 import { parseThemePaletteFull } from './parseTheme';
+import { namedColorHex } from './constants';
 
 /**
  * สมมุติว่า parseThemePaletteFull คืนค่า:
@@ -197,15 +198,7 @@ function getColorFromToken(token: string, mode?: string): vscode.Color | undefin
     return parseHexColor(token);
   }
   // (C) named color => dict
-  const namedColorHex: Record<string, string> = {
-    red: '#ff0000',
-    green: '#00ff00',
-    blue: '#0000ff',
-    black: '#000000',
-    white: '#ffffff',
-    gray: '#808080',
-    grey: '#808080',
-  };
+
   const lower = token.toLowerCase();
   if (namedColorHex[lower]) {
     return parseHexColor(namedColorHex[lower]);
