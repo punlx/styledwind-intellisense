@@ -961,16 +961,50 @@ export const cssValues: Record<string, string[]> = {
 };
 
 const moreStyleForSuggestion = {
-  f: 'font',
   ty: 'typography',
   container: 'container (query)',
   screen: 'screen (query)',
   hover: 'hover (state)',
   active: 'active (state)',
   focus: 'focus (state)',
-  'focus-within (state)': 'focus-within',
-  'focus-visible (state)': 'focus-visible',
+  'focus-within': 'focus-within (state)',
+  'focus-visible': 'focus-visible (state)',
   target: 'target (state)',
+
+  // Form states
+  disabled: 'disabled (state)',
+  'read-only': 'read-only (state)',
+  'read-write': 'read-write (state)',
+  required: 'required (state)',
+  optional: 'optional (state)',
+  checked: 'checked (state)',
+  indeterminate: 'indeterminate (state)',
+  valid: 'valid (state)',
+  invalid: 'invalid (state)',
+  'in-range': 'in-range (state)',
+  'out-of-range': 'out-of-range (state)',
+  'placeholder-shown': 'placeholder-shown (state)',
+  default: 'default (state)',
+
+  // Link states
+  link: 'link (state)',
+  visited: 'visited (state)',
+
+  // Other states
+  'user-invalid': 'user-invalid (state)',
+
+  // Pseudo-elements
+  before: 'before (pseudo)',
+  after: 'after (pseudo)',
+  placeholder: 'placeholder (pseudo)',
+  selection: 'selection (pseudo)',
+  'file-selector-button': 'file-selector-button (pseudo)',
+  'first-letter': 'first-letter (pseudo)',
+  'first-line': 'first-line (pseudo)',
+  marker: 'marker (pseudo)',
+  backdrop: 'backdrop (pseudo)',
+  'spelling-error': 'spelling-error (pseudo)',
+  'grammar-error': 'grammar-error (pseudo)',
 };
 
 export const variableAbbrSet = new Set([
@@ -1284,6 +1318,7 @@ export const abbrMap: Record<string, string> = {
   /********************************************
    * Font / Text
    ********************************************/
+  f: 'font',
   fm: 'font-family',
   fs: 'font-size',
   fw: 'font-weight',
