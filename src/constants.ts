@@ -973,6 +973,7 @@ const moreStyleForSuggestion = {
 
   // Form states
   disabled: 'disabled (state)',
+  enabled: 'enabled (state)',
   'read-only': 'read-only (state)',
   'read-write': 'read-write (state)',
   required: 'required (state)',
