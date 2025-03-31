@@ -24,7 +24,7 @@ function generateGeneric(sourceCode: string): string {
   // -----------------------------------------------------------------------------
   function parseStylesIntoSet(content: string, targetSet: Set<string>) {
     const pseudoFnRegex =
-      /\b(hover|focus|active|focus-visible|focus-within|target|before|after|screen|container)\s*\(([^)]*)\)/g;
+      /\b(hover|focus|active|focus-within|focus-visible|target|disabled|enabled|read-only|read-write|required|optional|checked|indeterminate|valid|invalid|in-range|out-of-range|placeholder-shown|default|link|visited|user-invalid|before|after|placeholder|selection|file-selector-button|first-letter|first-line|marker|backdrop|spelling-error|grammar-error|screen|container)\s*\(([^)]*)\)/g;
     let fnMatch: RegExpExecArray | null;
     while ((fnMatch = pseudoFnRegex.exec(content)) !== null) {
       const pseudoFn = fnMatch[1];
@@ -47,7 +47,7 @@ function generateGeneric(sourceCode: string): string {
     }
 
     const pseudoFnRegexForRemove =
-      /\b(?:hover|focus|active|focus-visible|focus-within|target|before|after|screen|container)\s*\(([^)]*)\)/g;
+      /\b(?:hover|focus|active|focus-within|focus-visible|target|disabled|enabled|read-only|read-write|required|optional|checked|indeterminate|valid|invalid|in-range|out-of-range|placeholder-shown|default|link|visited|user-invalid|before|after|placeholder|selection|file-selector-button|first-letter|first-line|marker|backdrop|spelling-error|grammar-error|screen|container)\s*\(([^)]*)\)/g;
     const contentWithoutFn = content.replace(pseudoFnRegexForRemove, '');
 
     const directMatches = [...contentWithoutFn.matchAll(/(\$[\w-]+)\[/g)]
