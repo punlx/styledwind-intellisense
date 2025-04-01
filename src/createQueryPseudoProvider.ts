@@ -31,7 +31,7 @@ export function createQueryPseudoProvider() {
         const completions: vscode.CompletionItem[] = [];
 
         for (const itemName of allPseudos) {
-          const ci = new vscode.CompletionItem(itemName, vscode.CompletionItemKind.Keyword);
+          const ci = new vscode.CompletionItem(itemName, vscode.CompletionItemKind.Function);
 
           // logic: ถ้า itemName คือ ":hover" => insert "hover"
           //        ถ้า itemName คือ "::after" => insert ":after"
