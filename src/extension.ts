@@ -31,6 +31,7 @@ import { initSpacingMap, updateSpacingDecorations } from './ghostSpacingDecorati
 
 // *** Import ghostImportantDecorations
 import { updateImportantDecorations } from './ghostImportantDecorations';
+import { createQueryPseudoProvider } from './createQueryPseudoProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -82,7 +83,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const paletteProvider = createStyledwindThemeColorProvider();
   const cssTsColorProviderDisposable = createCssTsColorProvider();
   const commentModeSuggestionProvider = createModeSuggestionProvider();
-
+  const queryPseudoProvider = createQueryPseudoProvider();
   context.subscriptions.push(
     localVarProviderDisposable,
     bracketProvider,
@@ -99,7 +100,8 @@ export async function activate(context: vscode.ExtensionContext) {
     paletteProvider,
     generateGenericProvider,
     cssTsColorProviderDisposable,
-    commentModeSuggestionProvider
+    commentModeSuggestionProvider,
+    queryPseudoProvider
   );
 
   // 3) Init spacingMap => เพื่อใช้ใน ghostSpacingDecorations
