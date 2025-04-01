@@ -1,4 +1,4 @@
-// suggestProviders.ts
+// cssValueSuggestProvider.ts
 import * as vscode from 'vscode';
 import { abbrMap, cssValues, namedColorHex } from './constants';
 

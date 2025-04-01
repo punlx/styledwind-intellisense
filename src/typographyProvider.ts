@@ -1,4 +1,4 @@
-// fontProvider.ts
+// typographyProvider.ts
 
 import * as vscode from 'vscode';
 import { abbrMap } from './constants';
