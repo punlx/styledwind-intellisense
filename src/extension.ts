@@ -6,8 +6,10 @@ import {
   parseThemeTypographyDict,
   parseThemeKeyframeDict,
   parseThemeVariableDict,
+  parseThemeDefine, // <-- เพิ่ม import parseThemeDefine
 } from './parseTheme';
 
+import { createDefineTopKeyProvider } from './defineTopKeyProvider'; // <-- import ใหม่
 import { createCSSValueSuggestProvider } from './cssValueSuggestProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations'; // ของเดิม (abbr ghost)
@@ -31,7 +33,9 @@ import { initSpacingMap, updateSpacingDecorations } from './ghostSpacingDecorati
 
 // *** Import ghostImportantDecorations
 import { updateImportantDecorations } from './ghostImportantDecorations';
-import { createQueryPseudoProvider } from './createQueryPseudoProvider';
+
+// *** (ใหม่) Import createDefineProvider
+import { createDefineProvider } from './defineProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -44,6 +48,9 @@ export async function activate(context: vscode.ExtensionContext) {
   let fontDict: Record<string, string> = {};
   let keyframeDict: Record<string, string> = {};
   let spacingDict: Record<string, string> = {};
+
+  // *** (ใหม่) เก็บ defineMap
+  let defineMap: Record<string, string[]> = {};
 
   if (vscode.workspace.workspaceFolders?.length) {
     try {
@@ -61,6 +68,9 @@ export async function activate(context: vscode.ExtensionContext) {
         fontDict = parseThemeTypographyDict(themeFilePath);
         keyframeDict = parseThemeKeyframeDict(themeFilePath);
         spacingDict = parseThemeVariableDict(themeFilePath);
+
+        // *** (ใหม่) parse define
+        defineMap = parseThemeDefine(themeFilePath);
       }
     } catch (err) {
       console.error('Error parse theme =>', err);
@@ -83,7 +93,11 @@ export async function activate(context: vscode.ExtensionContext) {
   const paletteProvider = createStyledwindThemeColorProvider();
   const cssTsColorProviderDisposable = createCssTsColorProvider();
   const commentModeSuggestionProvider = createModeSuggestionProvider();
-  const queryPseudoProvider = createQueryPseudoProvider();
+
+  // *** (ใหม่) defineProvider
+  const defineProviderDisposable = createDefineProvider(defineMap);
+  const defineTopKeyProviderDisposable = createDefineTopKeyProvider(defineMap);
+
   context.subscriptions.push(
     localVarProviderDisposable,
     bracketProvider,
@@ -101,7 +115,8 @@ export async function activate(context: vscode.ExtensionContext) {
     generateGenericProvider,
     cssTsColorProviderDisposable,
     commentModeSuggestionProvider,
-    queryPseudoProvider
+    defineProviderDisposable,
+    defineTopKeyProviderDisposable
   );
 
   // 3) Init spacingMap => เพื่อใช้ใน ghostSpacingDecorations

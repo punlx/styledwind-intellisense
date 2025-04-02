@@ -62,7 +62,7 @@ export function parseThemePaletteFull(
 }
 
 /**
- * parseThemeScreenDict:
+ * parseThemeBreakpointDict:
  *  - หา theme.screen({...}) => { sm:'max-w[700px]', md:'min-w[900px]'...}
  */
 export function parseThemeBreakpointDict(themeFilePath: string): Record<string, string> {
@@ -90,7 +90,7 @@ export function parseThemeBreakpointDict(themeFilePath: string): Record<string, 
 }
 
 /**
- * parseThemeFontDict:
+ * parseThemeTypographyDict:
  *  - หา theme.font({...}) => { 'display-1': 'fs[22px] fw[500]', ... }
  */
 export function parseThemeTypographyDict(themeFilePath: string): Record<string, string> {
@@ -120,7 +120,7 @@ export function parseThemeTypographyDict(themeFilePath: string): Record<string, 
 
 /**
  * parseThemeKeyframeDict:
- *  - หา theme.keyframe({...}) => { 'my-move': '0%(...)', 'pulse': 'from(...) to(...)'}
+ *  - หา theme.keyframe({...}) => { 'my-move': '0%(...)', 'pulse': 'from(...) to(...)' }
  */
 export function parseThemeKeyframeDict(themeFilePath: string): Record<string, string> {
   const dict: Record<string, string> = {};
@@ -150,8 +150,8 @@ export function parseThemeKeyframeDict(themeFilePath: string): Record<string, st
 }
 
 /**
- * parseThemeSpacingDict:
- *  - หา theme.spacing({...}) => { 'spacing-1': '12px', ... }
+ * parseThemeVariableDict:
+ *  - หา theme.variable({...}) => { 'spacing-1': '12px', ... }
  */
 export function parseThemeVariableDict(themeFilePath: string): Record<string, string> {
   const dict: Record<string, string> = {};
@@ -178,4 +178,55 @@ export function parseThemeVariableDict(themeFilePath: string): Record<string, st
   }
 
   return dict;
+}
+
+/**
+ * parseThemeDefine:
+ *  - หา theme.define({...}) => เช่น
+ *    theme.define({
+ *      button: {
+ *        primary: `...`,
+ *        secondary: `...`
+ *      },
+ *      card: {
+ *        card1: `...`,
+ *        card2: `...`
+ *      }
+ *    });
+ *  - คืนเป็น object => { button:["primary","secondary"], card:["card1","card2"] }
+ */
+export function parseThemeDefine(themeFilePath: string): Record<string, string[]> {
+  const res: Record<string, string[]> = {};
+  if (!fs.existsSync(themeFilePath)) return res;
+
+  const fileContent = fs.readFileSync(themeFilePath, 'utf8');
+
+  // จับบล็อก theme.define({ ... })
+  const defineRegex = /theme\.define\s*\(\s*\{\s*([\s\S]*?)\}\s*\)/m;
+  const mainMatch = defineRegex.exec(fileContent);
+  if (!mainMatch) return res;
+
+  const body = mainMatch[1]; // เนื้อใน {...}
+
+  // จับ top-level เช่น button: { ... }, card: { ... }
+  // ยังเป็น regex คร่าว ๆ
+  const topObjRegex = /(\w+)\s*:\s*\{([\s\S]*?)\},?/g;
+  let match: RegExpExecArray | null;
+  while ((match = topObjRegex.exec(body)) !== null) {
+    const mainKey = match[1];
+    const innerBody = match[2];
+
+    // subKey เช่น primary: `...`, secondary:`...`
+    const subKeys: string[] = [];
+    const subRegex = /(\w+)\s*:\s*[`'"]([^`'"]*)[`'"]/g;
+    let subMatch: RegExpExecArray | null;
+    while ((subMatch = subRegex.exec(innerBody)) !== null) {
+      const subKey = subMatch[1];
+      subKeys.push(subKey);
+    }
+
+    res[mainKey] = subKeys;
+  }
+
+  return res;
 }
