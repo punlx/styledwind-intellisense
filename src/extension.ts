@@ -1,15 +1,15 @@
 // extension.ts
 import * as vscode from 'vscode';
+
 import {
   parseThemePaletteFull,
   parseThemeBreakpointDict,
   parseThemeTypographyDict,
   parseThemeKeyframeDict,
   parseThemeVariableDict,
-  parseThemeDefine, // <-- เพิ่ม import parseThemeDefine
+  parseThemeDefine,
 } from './parseTheme';
 
-import { createDefineTopKeyProvider } from './defineTopKeyProvider'; // <-- import ใหม่
 import { createCSSValueSuggestProvider } from './cssValueSuggestProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations'; // ของเดิม (abbr ghost)
@@ -34,8 +34,12 @@ import { initSpacingMap, updateSpacingDecorations } from './ghostSpacingDecorati
 // *** Import ghostImportantDecorations
 import { updateImportantDecorations } from './ghostImportantDecorations';
 
-// *** (ใหม่) Import createDefineProvider
+// *** Import defineProvider / defineTopKeyProvider ถ้ามี
 import { createDefineProvider } from './defineProvider';
+import { createDefineTopKeyProvider } from './defineTopKeyProvider';
+
+// (ใหม่) import ฟังก์ชัน createSwdCssFile, registerCreateSwdCssCommand
+import { createSwdCssFile, registerCreateSwdCssCommand } from './createSwdCssCommand';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
@@ -49,7 +53,7 @@ export async function activate(context: vscode.ExtensionContext) {
   let keyframeDict: Record<string, string> = {};
   let spacingDict: Record<string, string> = {};
 
-  // *** (ใหม่) เก็บ defineMap
+  // เก็บ defineMap
   let defineMap: Record<string, string[]> = {};
 
   if (vscode.workspace.workspaceFolders?.length) {
@@ -68,8 +72,6 @@ export async function activate(context: vscode.ExtensionContext) {
         fontDict = parseThemeTypographyDict(themeFilePath);
         keyframeDict = parseThemeKeyframeDict(themeFilePath);
         spacingDict = parseThemeVariableDict(themeFilePath);
-
-        // *** (ใหม่) parse define
         defineMap = parseThemeDefine(themeFilePath);
       }
     } catch (err) {
@@ -94,7 +96,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const cssTsColorProviderDisposable = createCssTsColorProvider();
   const commentModeSuggestionProvider = createModeSuggestionProvider();
 
-  // *** (ใหม่) defineProvider
   const defineProviderDisposable = createDefineProvider(defineMap);
   const defineTopKeyProviderDisposable = createDefineTopKeyProvider(defineMap);
 
@@ -120,7 +121,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   // 3) Init spacingMap => เพื่อใช้ใน ghostSpacingDecorations
-  //    เอา spacingDict ที่ parse ได้ -> ใส่ initSpacingMap
   initSpacingMap(spacingDict);
 
   // 4) Ghost Decorations
@@ -152,6 +152,33 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   });
   context.subscriptions.push(changeDocDisposable);
+
+  // (ใหม่) Register Command สำหรับ manual create .swd.css
+  registerCreateSwdCssCommand(context);
+
+  // (ใหม่) ถ้าอยากให้ "auto-run" ตอน save
+  // onDidSaveTextDocument => ตรวจเป็น .css.ts => create/replace import .swd.css
+  const saveDisposable = vscode.workspace.onDidSaveTextDocument((savedDoc) => {
+    if (savedDoc.fileName.endsWith('.css.ts')) {
+      createSwdCssFile(savedDoc);
+    }
+  });
+  context.subscriptions.push(saveDisposable);
+
+  // (ใหม่) ดักจับ onDidRenameFiles => ถ้ามีการย้าย/rename ไฟล์ .css.ts => update import
+  const renameDisposable = vscode.workspace.onDidRenameFiles(async (e) => {
+    for (const file of e.files) {
+      if (file.newUri.fsPath.endsWith('.css.ts')) {
+        try {
+          const doc = await vscode.workspace.openTextDocument(file.newUri);
+          await createSwdCssFile(doc);
+        } catch (err) {
+          console.error('Error in rename event =>', err);
+        }
+      }
+    }
+  });
+  context.subscriptions.push(renameDisposable);
 }
 
 export function deactivate() {
