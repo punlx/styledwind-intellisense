@@ -17,6 +17,10 @@
       {
         "command": "styledwind.generateGeneric",
         "title": "Generate Styledwind Generic"
+      },
+      {
+        "command": "styledwind.createSwdCssFile",
+        "title": "Styledwind: Create .swd.css File"
       }
     ],
     "configuration": {
