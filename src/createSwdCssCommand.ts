@@ -456,7 +456,7 @@ function detectImportantSuffix(raw: string): { line: string; isImportant: boolea
 /* -------------------------------------------------------------------------
    parseVariableAbbr + buildVariableName (รองรับ $bg-hover => base: "bg", suffix: "hover")
    ------------------------------------------------------------------------- */
-function parseVariableAbbr(abbr: string): { baseVarName: string; suffix: string } {
+export function parseVariableAbbr(abbr: string): { baseVarName: string; suffix: string } {
   if (!abbr.startsWith('$')) {
     throw new Error(`[SWD-ERR] Only $variable is supported. Got "${abbr}"`);
   }
@@ -508,20 +508,21 @@ function parseBaseStyle(
   // ถ้าเป็น local var (--&xxx)
   if (styleAbbr.startsWith('--&')) {
     if (isConstContext) {
-      throw new Error(`[SWD-ERR] local var "${styleAbbr}" not allowed in @const block.`);
+      throw new Error(`[SWD-ERR] Local var "${styleAbbr}" not allowed inside @const block.`);
     }
     if (isQueryBlock) {
-      throw new Error(`[SWD-ERR] local var "${styleAbbr}" not allowed in @query block.`);
+      throw new Error(`[SWD-ERR] Local var "${styleAbbr}" not allowed inside @query block.`);
     }
     if (isImportant) {
-      throw new Error(`[SWD-ERR] !important not allowed with local var "${styleAbbr}".`);
+      throw new Error(`[SWD-ERR] !important is not allowed with local var "${styleAbbr}".`);
     }
+
+    const localVarName = styleAbbr.slice(3);
     if (!styleDef.localVars) {
       styleDef.localVars = {};
     }
-    const localVarName = styleAbbr.slice(3); // ตัด "--&"
     if (styleDef.localVars[localVarName] != null) {
-      throw new Error(`[SWD-ERR] local var "${localVarName}" is duplicated in this class.`);
+      throw new Error(`[SWD-ERR] local var "${localVarName}" is already declared in this class.`);
     }
     styleDef.localVars[localVarName] = convertCSSVariable(propValue);
     return;
@@ -529,6 +530,8 @@ function parseBaseStyle(
 
   // ถ้าเป็น $variable?
   const isVariable = styleAbbr.startsWith('$');
+  const realAbbr = isVariable ? styleAbbr.slice(1) : styleAbbr;
+
   if (isVariable && isQueryBlock) {
     throw new Error(`[SWD-ERR] $variable not allowed inside @query block. Found: "${abbrLine}"`);
   }
@@ -537,57 +540,43 @@ function parseBaseStyle(
   // (ตัวอย่างนี้อาจข้าม หรือ implement ถ้าต้องการ)
 
   // ลอง check abbrMap
-  if (isVariable) {
-    // สมมติ "$bg-hover" => parseVariableAbbr
-    const { baseVarName, suffix } = parseVariableAbbr(styleAbbr);
-    // e.g. baseVarName="bg", suffix="hover"
+  const expansions = [`${realAbbr}[${propValue}]`];
+  if (isVariable && isQueryBlock) {
+    throw new Error(`[SWD-ERR] $variable ("${styleAbbr}") not allowed inside @query block.`);
+  }
 
-    // เก็บ varBase => styleDef.varBase
-    if (!styleDef.varBase) {
-      styleDef.varBase = {};
-    }
-    const finalValue = convertCSSVariable(propValue);
-    // สมมติ key= "bg-hover" => จะ disect ยังไง?
-    // ในของเดิม: varBase[ baseVarName ] = finalValue => varBase["bg"] = ...
-    // suffix ไว้ handle ทีหลัง
-    const combinedKey = suffix ? `${baseVarName}-${suffix}` : baseVarName;
-    styleDef.varBase[combinedKey] = finalValue;
+  for (const ex of expansions) {
+    const [abbr2, val2] = separateStyleAndProperties(ex);
+    if (!abbr2) continue;
 
-    // ต้องรู้ว่า cssProp คืออะไร?
-    // ตัวอย่างเช่น "$bg-hover[red]" => ถ้า abbrMap ไม่มี "bg" => error?
-    // (หรือใน custom code: เราอาจ parse "bg" => abbrMap.bg => background-color)
-    // => ตัวอย่าง: $bg-hover => expansions [ "bg-hover[red]" ]
-    const expansions = [`${baseVarName}${suffix ? '-' + suffix : ''}[${propValue}]`];
-    for (const ex of expansions) {
-      const [abbr2, val2] = separateStyleAndProperties(ex);
-      if (!abbr2) continue;
-      const cssProp = (abbrMap as any)[abbr2];
-      if (!cssProp) {
-        // อาจ throw ได้
-        // หรือบางโปรเจกต์ไม่ต้อง map abbr -> prop
-        throw new Error(`[SWD-ERR] abbr "${abbr2}" not found in abbrMap (line=${abbrLine}).`);
-      }
-      const convertedVal = convertCSSVariable(val2);
-      styleDef.base[cssProp] = `var(--${baseVarName}${suffix ? '-' + suffix : ''})${
-        isImportant ? ' !important' : ''
-      }`;
+    const cssProp = abbrMap[abbr2 as keyof typeof abbrMap];
+    if (!cssProp) {
+      throw new Error(`"${abbr2}" not defined in abbrMap. (abbrLine=${abbrLine})`);
     }
-  } else {
-    // normal abbr (เช่น bg[red], w[100px], ...)
-    const expansions = [`${styleAbbr}[${propValue}]`];
-    for (const ex of expansions) {
-      const [abbr2, val2] = separateStyleAndProperties(ex);
-      if (!abbr2) continue;
-      const cssProp = (abbrMap as any)[abbr2];
-      if (!cssProp) {
-        throw new Error(`[SWD-ERR] abbr "${abbr2}" not found in abbrMap (line=${abbrLine}).`);
+    const finalVal = convertCSSVariable(val2);
+
+    if (isVariable) {
+      if (val2.startsWith('--&')) {
+        throw new Error(
+          `[SWD-ERR] Local var (--&xxx) is not allowed inside $variable usage. Got "${val2}"`
+        );
       }
-      let finalVal = convertCSSVariable(val2);
+      if (!styleDef.varBase) {
+        styleDef.varBase = {};
+      }
+      styleDef.varBase[realAbbr] = finalVal;
+
+      styleDef.base[cssProp] = `var(--${realAbbr})${isImportant ? ' !important' : ''}`;
+    } else {
+      // replace '--&' if exist
       if (val2.includes('--&')) {
-        // replace --&xxx => LOCALVAR(xxx)
-        finalVal = val2.replace(/--&([\w-]+)/g, (_, varName) => `LOCALVAR(${varName})`);
+        const replaced = val2.replace(/--&([\w-]+)/g, (_, varName) => {
+          return `LOCALVAR(${varName})`;
+        });
+        styleDef.base[cssProp] = replaced + (isImportant ? ' !important' : '');
+      } else {
+        styleDef.base[cssProp] = finalVal + (isImportant ? ' !important' : '');
       }
-      styleDef.base[cssProp] = finalVal + (isImportant ? ' !important' : '');
     }
   }
 }
@@ -732,31 +721,248 @@ function parsePseudoElementStyle(
     - ตัวอย่าง omitted หรือ simplified ...
 **/
 
+export function parseScreenStyle(
+  abbrLine: string,
+  styleDef: IStyleDefinition,
+  isConstContext: boolean = false
+) {
+  const openParenIdx = abbrLine.indexOf('(');
+  let inside = abbrLine.slice(openParenIdx + 1, -1).trim();
+
+  // TODO
+  // if (!(inside.startsWith('min') || inside.startsWith('max'))) {
+  //   const [bp] = inside.split(', ');
+  //   if (breakpoints.dict[bp]) {
+  //     inside = inside.replace(bp, breakpoints.dict[bp]);
+  //   }
+  // }
+
+  const commaIdx = inside.indexOf(',');
+  if (commaIdx === -1) {
+    throw new Error(`"screen" syntax error: ${abbrLine}`);
+  }
+
+  const screenPart = inside.slice(0, commaIdx).trim();
+  const propsPart = inside.slice(commaIdx + 1).trim();
+
+  const bracketOpen = screenPart.indexOf('[');
+  const bracketClose = screenPart.indexOf(']');
+  if (bracketOpen === -1 || bracketClose === -1) {
+    throw new Error(`"screen" must contain something like min-w[600px]. Got ${screenPart}`);
+  }
+
+  const screenAbbr = screenPart.slice(0, bracketOpen).trim();
+  const screenValue = screenPart.slice(bracketOpen + 1, bracketClose).trim();
+  const screenProp = abbrMap[screenAbbr as keyof typeof abbrMap];
+  if (!screenProp) {
+    throw new Error(`"${screenAbbr}" not found in abbrMap or not min-w/max-w`);
+  }
+
+  const mediaQuery = `(${screenProp}:${screenValue})`;
+
+  const styleList = propsPart.split(/ (?=[^\[\]]*(?:\[|$))/);
+  const screenProps: Record<string, string> = {};
+
+  for (const p of styleList) {
+    const { line: tokenNoBang, isImportant } = detectImportantSuffix(p);
+    if (isConstContext && isImportant) {
+      throw new Error(`[SWD-ERR] !important is not allowed in @const block. Found: "${abbrLine}"`);
+    }
+
+    const [abbr, val] = separateStyleAndProperties(tokenNoBang);
+    if (!abbr) continue;
+
+    const expansions = [`${abbr}[${val}]`];
+
+    for (const ex of expansions) {
+      const [abbr2, val2] = separateStyleAndProperties(ex);
+      if (!abbr2) continue;
+
+      if (abbr2.startsWith('--&') && isImportant) {
+        throw new Error(`[SWD-ERR] !important is not allowed with local var (${abbr2}) in screen.`);
+      }
+
+      // เดิม: if (abbr2 === 'f') => fontDict
+      // ใหม่: if (abbr2 === 'ty') => typographyDict
+      if (abbr2 === 'ty') {
+        // todo
+        // const dictEntry = typographyDict.dict[val2] as Record<string, string> | undefined;
+        // if (!dictEntry) {
+        //   throw new Error(`"${val2}" not found in theme.typography(...) (screen).`);
+        // }
+        // for (const [cssProp2, cssVal2] of Object.entries(dictEntry)) {
+        //   screenProps[cssProp2] = convertCSSVariable(cssVal2) + (isImportant ? ' !important' : '');
+        // }
+      } else {
+        const cProp = abbrMap[abbr2 as keyof typeof abbrMap];
+        if (!cProp) {
+          throw new Error(`"${abbr2}" not found in abbrMap (screen).`);
+        }
+        if (val2.includes('--&')) {
+          const replaced = val2.replace(/--&([\w-]+)/g, (_, varName) => {
+            return `LOCALVAR(${varName})`;
+          });
+          screenProps[cProp] = replaced + (isImportant ? ' !important' : '');
+        } else {
+          screenProps[cProp] = convertCSSVariable(val2) + (isImportant ? ' !important' : '');
+        }
+      }
+    }
+  }
+
+  styleDef.screens.push({ query: mediaQuery, props: screenProps });
+}
+
+function parseContainerStyle(
+  abbrLine: string,
+  styleDef: IStyleDefinition,
+  isConstContext: boolean = false
+) {
+  const openParenIdx = abbrLine.indexOf('(');
+  let inside = abbrLine.slice(openParenIdx + 1, -1).trim();
+  const commaIdx = inside.indexOf(',');
+  if (commaIdx === -1) {
+    throw new Error(`"container" syntax error: ${abbrLine}`);
+  }
+
+  let containerPart = inside.slice(0, commaIdx).trim();
+  const propsPart = inside.slice(commaIdx + 1).trim();
+
+  if (!(containerPart.startsWith('min') || containerPart.startsWith('max'))) {
+    const [bp] = containerPart.split(', ');
+    // TODO
+    // if (breakpoints.dict[bp]) {
+    //   containerPart = containerPart.replace(bp, breakpoints.dict[bp]);
+    // }
+  }
+
+  const bracketOpen = containerPart.indexOf('[');
+  const bracketClose = containerPart.indexOf(']');
+  if (bracketOpen === -1 || bracketClose === -1) {
+    throw new Error(`"container" must contain e.g. min-w[600px]. Got ${containerPart}`);
+  }
+
+  const cAbbr = containerPart.slice(0, bracketOpen).trim();
+  const cValue = containerPart.slice(bracketOpen + 1, bracketClose).trim();
+  const cProp = abbrMap[cAbbr as keyof typeof abbrMap];
+  if (!cProp) {
+    throw new Error(`"${cAbbr}" not found in abbrMap for container.`);
+  }
+
+  const containerQuery = `(${cProp}:${cValue})`;
+  const propsList = propsPart.split(/ (?=[^\[\]]*(?:\[|$))/);
+
+  const containerProps: Record<string, string> = {};
+
+  for (const p of propsList) {
+    const { line: tokenNoBang, isImportant } = detectImportantSuffix(p);
+    if (isConstContext && isImportant) {
+      throw new Error(`[SWD-ERR] !important is not allowed in @const block. Found: "${abbrLine}"`);
+    }
+    const [abbr, val] = separateStyleAndProperties(tokenNoBang);
+    if (!abbr) continue;
+
+    const expansions = [`${abbr}[${val}]`];
+    for (const ex of expansions) {
+      const [abbr2, val2] = separateStyleAndProperties(ex);
+      if (!abbr2) continue;
+
+      if (abbr2.startsWith('--&') && isImportant) {
+        throw new Error(
+          `[SWD-ERR] !important is not allowed with local var (${abbr2}) in container.`
+        );
+      }
+
+      // เดิม: if (abbr2 === 'f') => fontDict
+      // ใหม่: if (abbr2 === 'ty') => typographyDict
+      if (abbr2 === 'ty') {
+        // TODO
+        // const dictEntry = typographyDict.dict[val2] as Record<string, string> | undefined;
+        // if (!dictEntry) {
+        //   throw new Error(`"${val2}" not found in theme.typography(...) (container).`);
+        // }
+        // for (const [cssProp2, cssVal2] of Object.entries(dictEntry)) {
+        //   containerProps[cssProp2] =
+        //     convertCSSVariable(cssVal2) + (isImportant ? ' !important' : '');
+        // }
+      } else {
+        const cProp2 = abbrMap[abbr2 as keyof typeof abbrMap];
+        if (!cProp2) {
+          throw new Error(`"${abbr2}" not found in abbrMap (container).`);
+        }
+        if (val2.includes('--&')) {
+          const replaced = val2.replace(/--&([\w-]+)/g, (_, varName) => {
+            return `LOCALVAR(${varName})`;
+          });
+          containerProps[cProp2] = replaced + (isImportant ? ' !important' : '');
+        } else {
+          containerProps[cProp2] = convertCSSVariable(val2) + (isImportant ? ' !important' : '');
+        }
+      }
+    }
+  }
+
+  styleDef.containers.push({
+    query: containerQuery,
+    props: containerProps,
+  });
+}
+
 /** parseSingleAbbr - ตรวจ prefix '(' => state/pseudo/container/screen หรือ else base **/
 function parseSingleAbbr(
   abbrLine: string,
   styleDef: IStyleDefinition,
-  isConstContext = false,
-  isQueryBlock = false
+  isConstContext: boolean = false,
+  isQueryBlock: boolean = false,
+  isDefineContext: boolean = false
 ) {
   const trimmed = abbrLine.trim();
 
-  // ห้าม $var / local var ใน query?
-  // => check if (isQueryBlock && ....)
+  // ถ้า isDefineContext => ห้าม $variable (เฉพาะ theme.define)
+  if (isDefineContext && /^\$[\w-]+\[/.test(trimmed)) {
+    throw new Error(
+      `[SWD-ERR] $variable is not allowed in theme.define block. Found: "${trimmed}"`
+    );
+  }
 
-  // ถ้ายังไม่มี hasRuntimeVar && พบ $xxx => styleDef.hasRuntimeVar=true
+  // ถ้าอยู่ใน context ของ @const / theme.define => ห้ามมี @query
+  if (isConstContext && trimmed.startsWith('@query')) {
+    throw new Error(
+      `[SWD-ERR] @query is not allowed in @const or theme.define() block. Found: "${trimmed}"`
+    );
+  }
+
+  // ถ้าอยู่ใน query block (isQueryBlock=true) => ห้าม nested @query
+  if (isQueryBlock && trimmed.startsWith('@query')) {
+    throw new Error(`[SWD-ERR] Nested @query is not allowed.`);
+  }
+
+  // และใน query block ห้าม $var / local var ตามโค้ดเดิม
+  if (isQueryBlock) {
+    if (/^--&[\w-]+\[/.test(trimmed)) {
+      throw new Error(`[SWD-ERR] Local var not allowed inside @query block. Found: "${trimmed}"`);
+    }
+    if (/^\$[\w-]+\[/.test(trimmed)) {
+      throw new Error(
+        `[SWD-ERR] Runtime variable ($var) not allowed inside @query block. Found: "${trimmed}"`
+      );
+    }
+  }
+
+  // ถ้ายังไม่มี hasRuntimeVar ใน styleDef และเจอ $... => set hasRuntimeVar
   if (!styleDef.hasRuntimeVar && /\$[\w-]+\[/.test(trimmed)) {
     styleDef.hasRuntimeVar = true;
   }
 
-  const openParenIdx = trimmed.indexOf('(');
-  if (openParenIdx === -1) {
-    // base style
+  // ตรวจว่ามี "(" -> อาจเป็น state/pseudo/screen/container
+  const openParenIndex = trimmed.indexOf('(');
+  if (openParenIndex === -1) {
     parseBaseStyle(trimmed, styleDef, isConstContext, isQueryBlock);
     return;
   }
 
-  const prefix = trimmed.slice(0, openParenIdx);
+  const prefix = trimmed.slice(0, openParenIndex);
+
   if (knownStates.includes(prefix)) {
     parseStateStyle(trimmed, styleDef, isConstContext);
     return;
@@ -765,10 +971,16 @@ function parseSingleAbbr(
     parsePseudoElementStyle(trimmed, styleDef, isConstContext);
     return;
   }
-  // ถ้า prefix==="container" => parseContainerStyle
-  // ถ้า prefix==="screen" => parseScreenStyle
-  // ...
-  // else => base
+  if (prefix === 'screen') {
+    parseScreenStyle(trimmed, styleDef, isConstContext);
+    return;
+  }
+  if (prefix === 'container') {
+    parseContainerStyle(trimmed, styleDef, isConstContext);
+    return;
+  }
+
+  // ถ้าไม่เข้า case ข้างบน => parse base
   parseBaseStyle(trimmed, styleDef, isConstContext, isQueryBlock);
 }
 
