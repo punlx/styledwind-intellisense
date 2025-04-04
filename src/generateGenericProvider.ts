@@ -347,7 +347,7 @@ export const generateGenericProvider = vscode.commands.registerCommand(
     // ตรวจว่าไฟล์ลงท้าย .swd.ts
     const doc = editor.document;
     if (!doc.fileName.endsWith('.swd.ts')) {
-      vscode.window.showWarningMessage('This command is intended for *.swd.ts files');
+      // vscode.window.showWarningMessage('This command is intended for *.swd.ts files');
       return;
     }
 

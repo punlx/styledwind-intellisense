@@ -472,43 +472,47 @@ export function parseVariableAbbr(abbr: string): { baseVarName: string; suffix: 
   return { baseVarName, suffix };
 }
 
-function buildVariableName(
-  baseVarName: string,
-  scope: string,
-  cls: string,
-  suffix: string
-): string {
-  // ถ้าไม่มี suffix => --bg-scope_cls
-  // ถ้ามี suffix => --bg-scope_cls-hover
-  if (!suffix) {
-    return `--${baseVarName}-${scope}_${cls}`;
-  }
-  return `--${baseVarName}-${scope}_${cls}-${suffix}`;
-}
+/* -------------------------------------------------------------------------
+  checkAndReplaceLocalVarUsage
+   ------------------------------------------------------------------------- */
 
 /* -------------------------------------------------------------------------
    Section E: parseSingleAbbr - parse base/state/pseudo/... + !important checks
    ------------------------------------------------------------------------- */
 
 /** parseBaseStyle **/
-function parseBaseStyle(
+export function parseBaseStyle(
   abbrLine: string,
   styleDef: IStyleDefinition,
-  isConstContext: boolean,
-  isQueryBlock: boolean
+  isConstContext: boolean = false,
+  isQueryBlock: boolean = false
 ) {
+  // 1) ตรวจ !important + แยก abbr / prop
   const { line: abbrLineNoBang, isImportant } = detectImportantSuffix(abbrLine);
   if (isConstContext && isImportant) {
-    throw new Error(`[SWD-ERR] !important not allowed in @const/theme.define block. "${abbrLine}"`);
+    throw new Error(
+      `[SWD-ERR] !important is not allowed in @const (or theme.define) block. Found: "${abbrLine}"`
+    );
   }
 
   const [styleAbbr, propValue] = separateStyleAndProperties(abbrLineNoBang);
-  if (!styleAbbr) return;
+  if (!styleAbbr) {
+    return;
+  }
 
-  // ถ้าเป็น local var (--&xxx)
+  // 2) ถ้า abbr ซ้ำทั้ง abbrMap และ globalDefineMap => error
+  if (styleAbbr in abbrMap && styleAbbr in globalDefineMap) {
+    throw new Error(
+      `[SWD-ERR] "${styleAbbr}" is defined in both abbrMap and theme.define(...) - name collision not allowed.`
+    );
+  }
+
+  // 3) local var: --&xxx
   if (styleAbbr.startsWith('--&')) {
     if (isConstContext) {
-      throw new Error(`[SWD-ERR] Local var "${styleAbbr}" not allowed inside @const block.`);
+      throw new Error(
+        `[SWD-ERR] Local var "${styleAbbr}" not allowed inside @const/theme.define block.`
+      );
     }
     if (isQueryBlock) {
       throw new Error(`[SWD-ERR] Local var "${styleAbbr}" not allowed inside @query block.`);
@@ -517,10 +521,10 @@ function parseBaseStyle(
       throw new Error(`[SWD-ERR] !important is not allowed with local var "${styleAbbr}".`);
     }
 
-    const localVarName = styleAbbr.slice(3);
     if (!styleDef.localVars) {
       styleDef.localVars = {};
     }
+    const localVarName = styleAbbr.slice(3); // "--&"
     if (styleDef.localVars[localVarName] != null) {
       throw new Error(`[SWD-ERR] local var "${localVarName}" is already declared in this class.`);
     }
@@ -528,23 +532,84 @@ function parseBaseStyle(
     return;
   }
 
-  // ถ้าเป็น $variable?
+  // 4) ถ้าเป็น $variable
   const isVariable = styleAbbr.startsWith('$');
-  const realAbbr = isVariable ? styleAbbr.slice(1) : styleAbbr;
+  if (isVariable) {
+    if (isQueryBlock) {
+      throw new Error(
+        `[SWD-ERR] Runtime variable ($var) not allowed inside @query block. Found: "${abbrLine}"`
+      );
+    }
+    const realAbbr = styleAbbr.slice(1); // ตัด '$'
+    const expansions = [`${realAbbr}[${propValue}]`];
+    for (const ex of expansions) {
+      const [abbr2, val2] = separateStyleAndProperties(ex);
+      if (!abbr2) continue;
 
-  if (isVariable && isQueryBlock) {
-    throw new Error(`[SWD-ERR] $variable not allowed inside @query block. Found: "${abbrLine}"`);
+      if (val2.includes('--&')) {
+        throw new Error(
+          `[SWD-ERR] $variable is not allowed to reference local var (--&xxx). Found: "${abbrLine}"`
+        );
+      }
+
+      const cssProp = abbrMap[abbr2 as keyof typeof abbrMap];
+      if (!cssProp) {
+        throw new Error(`"${abbr2}" not defined in abbrMap. (abbrLine=${abbrLine})`);
+      }
+      const finalVal = convertCSSVariable(val2);
+
+      if (!styleDef.varBase) {
+        styleDef.varBase = {};
+      }
+      styleDef.varBase[realAbbr] = finalVal;
+
+      styleDef.base[cssProp] = `var(--${realAbbr})${isImportant ? ' !important' : ''}`;
+    }
+    return;
   }
 
-  // ถ้าทั้ง abbrMap และ globalDefineMap ก็ต้องตรวจไม่ conflict
-  // (ตัวอย่างนี้อาจข้าม หรือ implement ถ้าต้องการ)
-
-  // ลอง check abbrMap
-  const expansions = [`${realAbbr}[${propValue}]`];
-  if (isVariable && isQueryBlock) {
-    throw new Error(`[SWD-ERR] $variable ("${styleAbbr}") not allowed inside @query block.`);
+  // 5) ถ้าไม่ใช่ localVar และไม่ใช่ $var => เช็ค abbrMap / globalDefineMap
+  if (!(styleAbbr in abbrMap)) {
+    // ลอง globalDefineMap
+    if (styleAbbr in globalDefineMap) {
+      const tokens = propValue.split(/\s+/).filter(Boolean);
+      if (tokens.length > 1) {
+        throw new Error(
+          `[SWD-ERR] Multiple subKey not allowed. Found: "${styleAbbr}[${propValue}]"`
+        );
+      }
+      const subK = tokens[0];
+      if (!subK) {
+        throw new Error(`[SWD-ERR] Missing subKey for "${styleAbbr}[...]"`);
+      }
+      const partialDef = globalDefineMap[styleAbbr][subK];
+      if (!partialDef) {
+        throw new Error(`[SWD-ERR] "${styleAbbr}[${subK}]" not found in theme.define(...)`);
+      }
+      mergeStyleDef(styleDef, partialDef);
+      return;
+    }
+    throw new Error(
+      `"${styleAbbr}" not defined in abbrMap or theme.define(...) (abbrLine=${abbrLine})`
+    );
   }
 
+  // 6) ถ้าอยู่ใน abbrMap => parse normal abbr ex. "bg[red]"
+  if (styleAbbr === 'ty') {
+    // TODO
+    // const dictEntry = typographyDict.dict[propValue];
+    // if (!dictEntry) {
+    //   throw new Error(
+    //     `[SWD-ERR] Typography key "${propValue}" not found in theme.typography(...) dict.`
+    //   );
+    // }
+    // for (const [cssProp, cssVal] of Object.entries(dictEntry)) {
+    //   styleDef.base[cssProp] = convertCSSVariable(cssVal) + (isImportant ? ' !important' : '');
+    // }
+    // return;
+  }
+
+  const expansions = [`${styleAbbr}[${propValue}]`];
   for (const ex of expansions) {
     const [abbr2, val2] = separateStyleAndProperties(ex);
     if (!abbr2) continue;
@@ -553,168 +618,182 @@ function parseBaseStyle(
     if (!cssProp) {
       throw new Error(`"${abbr2}" not defined in abbrMap. (abbrLine=${abbrLine})`);
     }
-    const finalVal = convertCSSVariable(val2);
 
-    if (isVariable) {
-      if (val2.startsWith('--&')) {
-        throw new Error(
-          `[SWD-ERR] Local var (--&xxx) is not allowed inside $variable usage. Got "${val2}"`
-        );
-      }
-      if (!styleDef.varBase) {
-        styleDef.varBase = {};
-      }
-      styleDef.varBase[realAbbr] = finalVal;
+    let finalVal = convertCSSVariable(val2);
+    if (val2.includes('--&')) {
+      // ตรงนี้เก็บว่าใช้ localVar อะไร
+      finalVal = val2.replace(/--&([\w-]+)/g, (_, varName) => {
+        // บันทึกว่ามีการ "ใช้" localVar varName
+        if (!(styleDef as any)._usedLocalVars) {
+          (styleDef as any)._usedLocalVars = new Set<string>();
+        }
+        (styleDef as any)._usedLocalVars.add(varName);
 
-      styleDef.base[cssProp] = `var(--${realAbbr})${isImportant ? ' !important' : ''}`;
+        return `LOCALVAR(${varName})`;
+      });
+      styleDef.base[cssProp] = finalVal + (isImportant ? ' !important' : '');
     } else {
-      // replace '--&' if exist
-      if (val2.includes('--&')) {
-        const replaced = val2.replace(/--&([\w-]+)/g, (_, varName) => {
-          return `LOCALVAR(${varName})`;
-        });
-        styleDef.base[cssProp] = replaced + (isImportant ? ' !important' : '');
-      } else {
-        styleDef.base[cssProp] = finalVal + (isImportant ? ' !important' : '');
-      }
+      styleDef.base[cssProp] = finalVal + (isImportant ? ' !important' : '');
     }
   }
 }
-
 /** parseStateStyle - ex. hover(bg[red]) **/
-function parseStateStyle(abbrLine: string, styleDef: IStyleDefinition, isConstContext: boolean) {
+export function parseStateStyle(
+  abbrLine: string,
+  styleDef: IStyleDefinition,
+  isConstContext: boolean = false
+) {
   const openParenIdx = abbrLine.indexOf('(');
-  const stateName = abbrLine.slice(0, openParenIdx).trim();
+  const funcName = abbrLine.slice(0, openParenIdx).trim(); // "hover", "focus", etc.
   const inside = abbrLine.slice(openParenIdx + 1, -1).trim();
 
-  if (!styleDef.states[stateName]) {
-    styleDef.states[stateName] = {};
-  }
-  const resultObj = styleDef.states[stateName]!;
-
   const propsInState = inside.split(/ (?=[^\[\]]*(?:\[|$))/);
+  const result: Record<string, string> = {};
+
   for (const p of propsInState) {
     const { line: tokenNoBang, isImportant } = detectImportantSuffix(p);
     if (isConstContext && isImportant) {
-      throw new Error(`[SWD-ERR] !important not allowed in @const block (state). "${abbrLine}"`);
+      throw new Error(`[SWD-ERR] !important is not allowed in @const block. Found: "${abbrLine}"`);
     }
+
     const [abbr, val] = separateStyleAndProperties(tokenNoBang);
     if (!abbr) continue;
 
-    if (abbr.startsWith('--&') && isImportant) {
-      throw new Error(
-        `[SWD-ERR] !important not allowed with local var (${abbr}) in state ${stateName}.`
-      );
-    }
+    const expansions = [`${abbr}[${val}]`];
+    for (const ex of expansions) {
+      const [abbr2, val2] = separateStyleAndProperties(ex);
+      if (!abbr2) continue;
 
-    // check $variable?
-    if (abbr.startsWith('$')) {
-      // parse suffix
-      const { baseVarName, suffix } = parseVariableAbbr(abbr);
-      if (!styleDef.varStates) {
-        styleDef.varStates = {};
+      if (abbr2.startsWith('--&') && isImportant) {
+        throw new Error(
+          `[SWD-ERR] !important is not allowed with local var (${abbr2}) in state ${funcName}.`
+        );
       }
-      if (!styleDef.varStates[stateName]) {
-        styleDef.varStates[stateName] = {};
+
+      const isVar = abbr2.startsWith('$');
+      const realAbbr = isVar ? abbr2.slice(1) : abbr2;
+
+      // เดิม: if (realAbbr==='f') => fontDict
+      // ใหม่: if (realAbbr==='ty') => typographyDict
+      if (realAbbr === 'ty') {
+        // TODO
+        // const dictEntry = typographyDict.dict[val2] as Record<string, string> | undefined;
+        // if (!dictEntry) {
+        //   throw new Error(
+        //     `[SWD-ERR] Typography key "${val2}" not found in theme.typography(...) for state ${funcName}.`
+        //   );
+        // }
+        // for (const [cssProp2, cssVal2] of Object.entries(dictEntry)) {
+        //   result[cssProp2] = convertCSSVariable(cssVal2) + (isImportant ? ' !important' : '');
+        // }
+        // continue;
       }
-      const combinedKey = suffix ? `${baseVarName}-${suffix}` : baseVarName;
-      styleDef.varStates[stateName]![combinedKey] = convertCSSVariable(val);
-      // สมมติ abbrMap[ baseVarName+suffix ] => background-color ...
-      // (ตัวอย่าง simplfy)
-      // ... (หรือ parse expansions)
-      // * simplified version
-      resultObj['color'] = `var(--${combinedKey}-${stateName})${isImportant ? ' !important' : ''}`;
-      // NOTE: ของจริงควร map abbr => cssProp
-      // (ทำแบบ parseBaseStyle)
-      // * Example simplified
-    } else {
-      // normal abbr
-      const expansions = [`${abbr}[${val}]`];
-      for (const ex of expansions) {
-        const [abbr2, val2] = separateStyleAndProperties(ex);
-        if (!abbr2) continue;
-        const cssProp = (abbrMap as any)[abbr2];
-        if (!cssProp) {
-          throw new Error(`[SWD-ERR] abbr "${abbr2}" not found in abbrMap (state=${stateName}).`);
-        }
-        let replacedVal = convertCSSVariable(val2);
-        if (val2.includes('--&')) {
-          replacedVal = val2.replace(/--&([\w-]+)/g, (_, varName) => `LOCALVAR(${varName})`);
-        }
-        resultObj[cssProp] = replacedVal + (isImportant ? ' !important' : '');
+
+      const cProp = abbrMap[realAbbr as keyof typeof abbrMap];
+      if (!cProp) {
+        throw new Error(`"${realAbbr}" not found in abbrMap for state ${funcName}.`);
+      }
+
+      let finalVal = convertCSSVariable(val2);
+      if (isVar) {
+        styleDef.varStates = styleDef.varStates || {};
+        styleDef.varStates[funcName] = styleDef.varStates[funcName] || {};
+        styleDef.varStates[funcName][realAbbr] = finalVal;
+
+        result[cProp] = `var(--${realAbbr}-${funcName})` + (isImportant ? ' !important' : '');
+      } else if (val2.includes('--&')) {
+        const replaced = val2.replace(/--&([\w-]+)/g, (_, varName) => {
+          return `LOCALVAR(${varName})`;
+        });
+        result[cProp] = replaced + (isImportant ? ' !important' : '');
+      } else {
+        result[cProp] = finalVal + (isImportant ? ' !important' : '');
       }
     }
   }
+
+  styleDef.states[funcName] = result;
 }
 
 /** parsePseudoElementStyle - ex. before(bg[red]) **/
 function parsePseudoElementStyle(
   abbrLine: string,
   styleDef: IStyleDefinition,
-  isConstContext: boolean
+  isConstContext: boolean = false
 ) {
   const openParenIdx = abbrLine.indexOf('(');
   const pseudoName = abbrLine.slice(0, openParenIdx).trim();
   const inside = abbrLine.slice(openParenIdx + 1, -1).trim();
-
-  if (!styleDef.pseudos[pseudoName]) {
-    styleDef.pseudos[pseudoName] = {};
-  }
-  const resultObj = styleDef.pseudos[pseudoName]!;
-
-  // รองรับ varPseudos
-  if (!styleDef.varPseudos) {
-    styleDef.varPseudos = {};
-  }
-  if (!styleDef.varPseudos[pseudoName]) {
-    styleDef.varPseudos[pseudoName] = {};
-  }
-
   const propsInPseudo = inside.split(/ (?=[^\[\]]*(?:\[|$))/);
+
+  const result: Record<string, string> = styleDef.pseudos[pseudoName] || {};
+  styleDef.varPseudos = styleDef.varPseudos || {};
+  styleDef.varPseudos[pseudoName] = styleDef.varPseudos[pseudoName] || {};
+
   for (const p of propsInPseudo) {
     const { line: tokenNoBang, isImportant } = detectImportantSuffix(p);
     if (isConstContext && isImportant) {
-      throw new Error(`[SWD-ERR] !important not allowed in @const block. (pseudo=${pseudoName})`);
+      throw new Error(`[SWD-ERR] !important is not allowed in @const block. Found: "${abbrLine}"`);
     }
     const [abbr, val] = separateStyleAndProperties(tokenNoBang);
     if (!abbr) continue;
 
     if (abbr.startsWith('--&') && isImportant) {
-      throw new Error(`[SWD-ERR] !important not allowed with local var in pseudo ${pseudoName}.`);
+      throw new Error(
+        `[SWD-ERR] !important is not allowed with local var (${abbr}) in pseudo ${pseudoName}.`
+      );
     }
 
-    // ถ้า abbr === 'ct' => content
     if (abbr === 'ct') {
-      resultObj['content'] = `"${val}"` + (isImportant ? ' !important' : '');
+      result['content'] = `"${val}"` + (isImportant ? ' !important' : '');
       continue;
     }
 
-    // check $variable?
-    if (abbr.startsWith('$')) {
-      const { baseVarName, suffix } = parseVariableAbbr(abbr);
-      const combinedKey = suffix ? `${baseVarName}-${suffix}` : baseVarName;
-      styleDef.varPseudos[pseudoName]![combinedKey] = convertCSSVariable(val);
-      // สมมติ mapping abbr => cssProp
-      // simplified => resultObj["color"] = ...
-      resultObj['color'] = `var(--${combinedKey}-${pseudoName})${isImportant ? ' !important' : ''}`;
-    } else {
-      // normal
-      const expansions = [`${abbr}[${val}]`];
-      for (const ex of expansions) {
-        const [abbr2, val2] = separateStyleAndProperties(ex);
-        if (!abbr2) continue;
-        const cssProp = (abbrMap as any)[abbr2];
-        if (!cssProp) {
-          throw new Error(`[SWD-ERR] abbr "${abbr2}" not found in abbrMap (pseudo=${pseudoName}).`);
-        }
-        let replacedVal = convertCSSVariable(val2);
-        if (val2.includes('--&')) {
-          replacedVal = val2.replace(/--&([\w-]+)/g, (_, v) => `LOCALVAR(${v})`);
-        }
-        resultObj[cssProp] = replacedVal + (isImportant ? ' !important' : '');
+    const expansions = [`${abbr}[${val}]`];
+    for (const ex of expansions) {
+      const [abbr2, val2] = separateStyleAndProperties(ex);
+      if (!abbr2) continue;
+
+      const isVariable = abbr2.startsWith('$');
+      const realAbbr = isVariable ? abbr2.slice(1) : abbr2;
+
+      // เดิม: if (realAbbr === 'f') => fontDict
+      // ใหม่: if (realAbbr === 'ty') => typographyDict
+      if (realAbbr === 'ty') {
+        // TODO
+        // const dictEntry = typographyDict.dict[val2] as Record<string, string> | undefined;
+        // if (!dictEntry) {
+        //   throw new Error(
+        //     `[SWD-ERR] Typography key "${val2}" not found in theme.typography(...) for pseudo ${pseudoName}.`
+        //   );
+        // }
+        // for (const [cssProp2, cssVal2] of Object.entries(dictEntry)) {
+        //   result[cssProp2] = convertCSSVariable(cssVal2) + (isImportant ? ' !important' : '');
+        // }
+        // continue;
+      }
+
+      const cProp = abbrMap[realAbbr as keyof typeof abbrMap];
+      if (!cProp) {
+        throw new Error(`"${realAbbr}" not found in abbrMap for pseudo-element ${pseudoName}.`);
+      }
+
+      const finalVal = convertCSSVariable(val2);
+      if (isVariable) {
+        styleDef.varPseudos[pseudoName]![realAbbr] = finalVal;
+        result[cProp] = `var(--${realAbbr}-${pseudoName})` + (isImportant ? ' !important' : '');
+      } else if (val2.includes('--&')) {
+        const replaced = val2.replace(/--&([\w-]+)/g, (_, varName) => {
+          return `LOCALVAR(${varName})`;
+        });
+        result[cProp] = replaced + (isImportant ? ' !important' : '');
+      } else {
+        result[cProp] = finalVal + (isImportant ? ' !important' : '');
       }
     }
   }
+
+  styleDef.pseudos[pseudoName] = result;
 }
 
 /** (option) parseContainerStyle / parseScreenStyle ถ้าต้องการ container/screen
@@ -1012,9 +1091,11 @@ function extractQueryBlocks(classBody: string): {
    - สำหรับ @use/@const/etc. => นำ partial styleDef มารวม
    ------------------------------------------------------------------------- */
 function mergeStyleDef(target: IStyleDefinition, source: IStyleDefinition) {
+  // base
   for (const prop in source.base) {
     target.base[prop] = source.base[prop];
   }
+  // states
   for (const st in source.states) {
     if (!target.states[st]) {
       target.states[st] = {};
@@ -1023,12 +1104,16 @@ function mergeStyleDef(target: IStyleDefinition, source: IStyleDefinition) {
       target.states[st][p] = source.states[st][p];
     }
   }
+  // screens
   for (const s of source.screens) {
+    // naive: push
     target.screens.push({ query: s.query, props: { ...s.props } });
   }
+  // containers
   for (const c of source.containers) {
     target.containers.push({ query: c.query, props: { ...c.props } });
   }
+  // pseudos
   for (const pName in source.pseudos) {
     if (!target.pseudos[pName]) {
       target.pseudos[pName] = {};
@@ -1038,36 +1123,50 @@ function mergeStyleDef(target: IStyleDefinition, source: IStyleDefinition) {
       target.pseudos[pName]![prop] = fromPseudo[prop];
     }
   }
+
+  // varBase
   if (source.varBase) {
-    if (!target.varBase) target.varBase = {};
+    if (!target.varBase) {
+      target.varBase = {};
+    }
     for (const k in source.varBase) {
       target.varBase[k] = source.varBase[k];
     }
   }
+  // varStates
   if (source.varStates) {
-    if (!target.varStates) target.varStates = {};
+    if (!target.varStates) {
+      target.varStates = {};
+    }
     for (const stName in source.varStates) {
       if (!target.varStates[stName]) {
         target.varStates[stName] = {};
       }
       for (const k in source.varStates[stName]) {
-        target.varStates[stName]![k] = source.varStates[stName]![k];
+        target.varStates[stName][k] = source.varStates[stName][k];
       }
     }
   }
+  // varPseudos
   if (source.varPseudos) {
-    if (!target.varPseudos) target.varPseudos = {};
+    if (!target.varPseudos) {
+      target.varPseudos = {};
+    }
     for (const pseudoKey in source.varPseudos) {
       if (!target.varPseudos[pseudoKey]) {
         target.varPseudos[pseudoKey] = {};
       }
       for (const k in source.varPseudos[pseudoKey]) {
-        target.varPseudos[pseudoKey]![k] = source.varPseudos[pseudoKey]![k];
+        target.varPseudos[pseudoKey]![k] = source.varPseudos[pseudoKey][k];
       }
     }
   }
+
+  // rootVars
   if (source.rootVars) {
-    if (!target.rootVars) target.rootVars = {};
+    if (!target.rootVars) {
+      target.rootVars = {};
+    }
     for (const rv in source.rootVars) {
       target.rootVars[rv] = source.rootVars[rv];
     }
@@ -1138,23 +1237,38 @@ function parseDirectives(text: string): {
 
 function parseClassBlocksWithBraceCounting(text: string): IClassBlock[] {
   const result: IClassBlock[] = [];
+
+  // regex จับชื่อ class => .<className>{
+  // แล้วใช้ brace counting เพื่อหา "}" ที่แท้จริง
   const pattern = /\.([\w-]+)\s*\{/g;
   let match: RegExpExecArray | null;
+
   while ((match = pattern.exec(text)) !== null) {
     const className = match[1];
+    // ตำแหน่งหลัง {
     const startIndex = pattern.lastIndex;
     let braceCount = 1;
     let i = startIndex;
     for (; i < text.length; i++) {
-      if (text[i] === '{') braceCount++;
-      else if (text[i] === '}') braceCount--;
+      if (text[i] === '{') {
+        braceCount++;
+      } else if (text[i] === '}') {
+        braceCount--;
+      }
       if (braceCount === 0) {
+        // เจอจุดปิด block แล้ว
         break;
       }
     }
+    // i คือ index ของ '}' สุดท้าย
     const body = text.slice(startIndex, i).trim();
-    result.push({ className, body });
+
+    result.push({
+      className,
+      body,
+    });
   }
+
   return result;
 }
 
@@ -1166,10 +1280,21 @@ function processClassBlocks(
   classBlocks: IClassBlock[],
   constMap: Map<string, IStyleDefinition>
 ): Map<string, IStyleDefinition> {
+  const localClasses = new Set<string>();
   const result = new Map<string, IStyleDefinition>();
 
   for (const block of classBlocks) {
     const clsName = block.className;
+
+    // -----------------------------
+    // 1) กันซ้ำภายในไฟล์ (local)
+    // -----------------------------
+    if (localClasses.has(clsName)) {
+      throw new Error(
+        `[SWD-ERR] Duplicate class ".${clsName}" in scope "${scopeName}" (same file).`
+      );
+    }
+    localClasses.add(clsName);
 
     // กันซ้ำ cross-file (ถ้า scopeName!=='none')
     if (scopeName !== 'none') {
@@ -1197,6 +1322,7 @@ function processClassBlocks(
       .split('\n')
       .map((l) => l.trim())
       .filter(Boolean);
+
     let usedConstNames: string[] = [];
     const normalLines: string[] = [];
     for (const ln of lines) {
@@ -1210,35 +1336,60 @@ function processClassBlocks(
         normalLines.push(ln);
       }
     }
-    // merge const
-    for (const cName of usedConstNames) {
-      if (!constMap.has(cName)) {
-        throw new Error(`[SWD-ERR] @use unknown const "${cName}".`);
+    // -----------------------------------
+    // (A) Merge const ก่อน -> เป็น baseline
+    // -----------------------------------
+    if (usedConstNames.length > 0) {
+      for (const cName of usedConstNames) {
+        if (!constMap.has(cName)) {
+          throw new Error(`[SWD-ERR] @use refers to unknown const "${cName}".`);
+        }
+        const partialDef = constMap.get(cName)!;
+        mergeStyleDef(classStyleDef, partialDef);
       }
-      mergeStyleDef(classStyleDef, constMap.get(cName)!);
-    }
-    // parse normal lines
-    for (const l of normalLines) {
-      parseSingleAbbr(l, classStyleDef, false, false);
     }
 
-    // (C) parse ใน query blocks
+    // -----------------------------------
+    // (B) ค่อย parse บรรทัดปกติ -> override
+    // -----------------------------------
+    for (const ln of normalLines) {
+      parseSingleAbbr(ln, classStyleDef);
+    }
+
+    // -----------------------------
+    // C) parse ภายใน query block
+    // -----------------------------
     for (let i = 0; i < realQueryBlocks.length; i++) {
       const qBlock = realQueryBlocks[i];
       const qRawBody = queries[i].rawBody;
+
+      // **คัดลอก localVars จาก parent => query styleDef**
+      // เพื่อให้ query block มองเห็น var ที่ parent ประกาศ
+      if (!qBlock.styleDef.localVars) {
+        qBlock.styleDef.localVars = {};
+      }
+      if (classStyleDef.localVars) {
+        // merge เข้าไป
+        Object.assign(qBlock.styleDef.localVars, classStyleDef.localVars);
+      }
+
       const qLines = qRawBody
         .split('\n')
         .map((l) => l.trim())
         .filter(Boolean);
+
       let usedConstNamesQ: string[] = [];
       const normalQLines: string[] = [];
+
       for (const qLn of qLines) {
         if (qLn.startsWith('@use ')) {
-          usedConstNamesQ.push(...qLn.replace('@use', '').trim().split(/\s+/));
+          const tokens = qLn.replace('@use', '').trim().split(/\s+/);
+          usedConstNamesQ.push(...tokens);
         } else {
           normalQLines.push(qLn);
         }
       }
+
       // merge const (ห้ามมี $variable => hasRuntimeVar ?)
       for (const cName of usedConstNamesQ) {
         if (!constMap.has(cName)) {
@@ -1259,6 +1410,33 @@ function processClassBlocks(
       }
     }
 
+    // 6) **ตรวจว่า usedLocalVars ทุกตัวถูกประกาศหรือไม่**
+    // ตรวจที่ classStyleDef
+    if ((classStyleDef as any)._usedLocalVars) {
+      for (const usedVar of (classStyleDef as any)._usedLocalVars) {
+        if (!classStyleDef.localVars || !(usedVar in classStyleDef.localVars)) {
+          throw new Error(
+            `[SWD-ERR] local var "${usedVar}" is used but not declared in ".${clsName}" (scope="${scopeName}").`
+          );
+        }
+      }
+    }
+    // ตรวจใน query blocks
+    for (let i = 0; i < realQueryBlocks.length; i++) {
+      const qStyleDef = realQueryBlocks[i].styleDef;
+      if ((qStyleDef as any)._usedLocalVars) {
+        for (const usedVar of (qStyleDef as any)._usedLocalVars) {
+          if (!qStyleDef.localVars || !(usedVar in qStyleDef.localVars)) {
+            // ชื่อ selector
+            const sel = queries[i].selector;
+            throw new Error(
+              `[SWD-ERR] local var "${usedVar}" is used but not declared in query "${sel}" of ".${clsName}".`
+            );
+          }
+        }
+      }
+    }
+
     // ตั้งชื่อ finalKey => scopeName==='none' ? clsName : scopeName_clsName
     const finalKey = scopeName === 'none' ? clsName : `${scopeName}_${clsName}`;
     result.set(finalKey, classStyleDef);
@@ -1276,6 +1454,8 @@ function handleBindDirectives(
   directives: IParsedDirective[],
   classMap: Map<string, IStyleDefinition>
 ) {
+  const localBindKeys = new Set<string>();
+
   // ตัวอย่าง: สมมติเราจะเก็บผล bind ไว้ใน "bindResults" => key => "class1 class2"
   // หรือบางโปรเจกต์ อาจต้องการ return Object (line runtime) => แล้ว transform
   // ที่นี่เราทำแบบง่าย: แค่ throw ถ้า syntax ผิด
@@ -1286,26 +1466,38 @@ function handleBindDirectives(
         throw new Error(`[SWD-ERR] Invalid @bind syntax: "${d.value}"`);
       }
       const bindKey = tokens[0]; // e.g. "main"
-      const refs = tokens.slice(1); // e.g. [".box", ".grid"]
+      const classRefs = tokens.slice(1); // e.g. [".box", ".grid"]
+
+      if (localBindKeys.has(bindKey)) {
+        throw new Error(`[SWD-ERR] @bind key "${bindKey}" is already used in this file.`);
+      }
+      localBindKeys.add(bindKey);
 
       // ตรวจว่า refs => ".box" => finalKey => "scope_box"
       // วิธีแก้:
       // 1) parse => clsName="box" => finalKey = scopeName==='none'? "box" : "scope_box"
       //    => แล้วเช็คว่า classMap.has( finalKey )
       const classNames: string[] = [];
-      for (const ref of refs) {
+      for (const ref of classRefs) {
         if (!ref.startsWith('.')) {
           throw new Error(`[SWD-ERR] @bind usage must reference classes with a dot. got "${ref}"`);
         }
         const shortCls = ref.slice(1);
         const finalKey = scopeName === 'none' ? shortCls : `${scopeName}_${shortCls}`;
+        if (classMap.has(`${scopeName}_${bindKey}`)) {
+          throw new Error(
+            `[SWD-ERR] @bind key "${bindKey}" conflicts with existing class ".${bindKey}" in styled (scope="${scopeName}").`
+          );
+        }
         if (!classMap.has(finalKey)) {
           throw new Error(
             `[SWD-ERR] @bind referencing ".${shortCls}" but that class is not defined.`
           );
         }
+
         classNames.push(finalKey);
       }
+
       // จะเก็บลงไหน? สมมติ we do nothing or console.log
       // In real code, maybe store in a map or something
       // console.log(`@bind ${bindKey} => ${classNames.join(' ')}`);
@@ -1317,48 +1509,58 @@ function handleBindDirectives(
    Section K: transformVariables + transformLocalVariables
    - ตัดเรื่อง dev/prod
    ------------------------------------------------------------------------- */
-function transFormVariables(styleDef: IStyleDefinition, scopeName: string, classKey: string) {
-  // scopePart
-  // ถ้า scopeName==='none' => classKey (อาจเป็น "box")
-  // ถ้า scopeName!=='none' => classKey จะเป็น "scope_box"
-  // => สรุปใช้ classKey ตรงๆ ก็ได้
-  const scopePart = classKey;
-
-  // varBase
+export function transFormVariables(
+  styleDef: IStyleDefinition,
+  scopeName: string,
+  className: string
+): void {
+  // helper สร้าง prefix
+  const scopePart = scopeName === 'none' ? className : `${scopeName}_${className}`;
+  // -----------------------------
+  // 1) Base variables (varBase)
+  // -----------------------------
   if (styleDef.varBase) {
     for (const varName in styleDef.varBase) {
-      // varName อาจเป็น "bg" หรือ "bg-hover"
-      const rawVal = styleDef.varBase[varName];
-      const finalVarName = `--${varName}-${scopePart}`;
-      styleDef.rootVars = styleDef.rootVars || {};
-      styleDef.rootVars[finalVarName] = rawVal;
+      const rawValue = styleDef.varBase[varName];
 
-      // replace var(--bg-hover) => var(--bg-hover-scopePart) ใน base
-      for (const p in styleDef.base) {
-        styleDef.base[p] = styleDef.base[p].replace(
-          new RegExp(`var\\(--${varName}\\)`, 'g'),
+      // finalVarName => "--varName-scopePart"
+      const finalVarName = `--${varName}-${scopePart}`;
+
+      // ใส่ลง rootVars
+      styleDef.rootVars = styleDef.rootVars || {};
+      styleDef.rootVars[finalVarName] = rawValue;
+
+      // replace var(--varName) => var(--varName-scopePart) ใน base
+      for (const cssProp in styleDef.base) {
+        styleDef.base[cssProp] = styleDef.base[cssProp].replace(
+          `var(--${varName})`,
           `var(${finalVarName})`
         );
       }
     }
   }
 
-  // varStates
+  // -----------------------------
+  // 2) State variables (varStates)
+  // -----------------------------
   if (styleDef.varStates) {
     for (const stName in styleDef.varStates) {
-      // @ts-ignore
-      const varObj = styleDef.varStates[stName];
-      // @ts-ignore
-      for (const varName in varObj) {
-        const rawVal = varObj[varName];
+      const varsOfThatState: Record<string, string> = styleDef.varStates[stName] || {};
+      for (const varName in varsOfThatState) {
+        const rawValue = varsOfThatState[varName];
+
+        // "--varName-scopePart-stateName"
         const finalVarName = `--${varName}-${scopePart}-${stName}`;
+
         styleDef.rootVars = styleDef.rootVars || {};
-        styleDef.rootVars[finalVarName] = rawVal;
-        const stProps = styleDef.states[stName];
-        if (stProps) {
-          for (const cssProp in stProps) {
-            stProps[cssProp] = stProps[cssProp].replace(
-              new RegExp(`var\\(--${varName}-${stName}\\)`, 'g'),
+        styleDef.rootVars[finalVarName] = rawValue;
+
+        // replace var(--varName-state) => var(--varName-scopePart-state)
+        const stateProps = styleDef.states[stName];
+        if (stateProps) {
+          for (const cssProp in stateProps) {
+            stateProps[cssProp] = stateProps[cssProp].replace(
+              `var(--${varName}-${stName})`,
               `var(${finalVarName})`
             );
           }
@@ -1367,23 +1569,25 @@ function transFormVariables(styleDef: IStyleDefinition, scopeName: string, class
     }
   }
 
-  // varPseudos
+  // ------------------------------------------------------
+  // 3) Pseudo variables
+  // ------------------------------------------------------
   if (styleDef.varPseudos) {
     for (const pseudoName in styleDef.varPseudos) {
-      // @ts-ignore
-      const varObj = styleDef.varPseudos[pseudoName]!;
-      // @ts-ignore
-      for (const varName in varObj) {
-        const rawVal = varObj[varName];
+      const pseudoVars: Record<string, string> = styleDef.varPseudos[pseudoName] || {};
+      for (const varName in pseudoVars) {
+        const rawValue = pseudoVars[varName];
+        // "--varName-scopePart-pseudoName"
         const finalVarName = `--${varName}-${scopePart}-${pseudoName}`;
-        styleDef.rootVars = styleDef.rootVars || {};
-        styleDef.rootVars[finalVarName] = rawVal;
 
-        const pseudoObj = styleDef.pseudos[pseudoName];
-        if (pseudoObj) {
-          for (const cssProp in pseudoObj) {
-            pseudoObj[cssProp] = pseudoObj[cssProp].replace(
-              new RegExp(`var\\(--${varName}-${pseudoName}\\)`, 'g'),
+        styleDef.rootVars = styleDef.rootVars || {};
+        styleDef.rootVars[finalVarName] = rawValue;
+
+        const pseudoProps = styleDef.pseudos[pseudoName];
+        if (pseudoProps) {
+          for (const cssProp in pseudoProps) {
+            pseudoProps[cssProp] = pseudoProps[cssProp].replace(
+              `var(--${varName}-${pseudoName})`,
               `var(${finalVarName})`
             );
           }
@@ -1393,67 +1597,74 @@ function transFormVariables(styleDef: IStyleDefinition, scopeName: string, class
   }
 }
 
-function transformLocalVariables(styleDef: IStyleDefinition, classKey: string) {
-  if (!styleDef.localVars) return;
+function transformLocalVariables(
+  styleDef: IStyleDefinition,
+  scopeName: string,
+  className: string
+): void {
+  if (!styleDef.localVars) {
+    return;
+  }
+
+  // ถ้า scopeName==='none' => ใช้ className เฉย ๆ, ไม่ใส่ 'none_'
+  const scopePart = scopeName === 'none' ? className : `${scopeName}_${className}`;
+
+  // สร้าง map property
   const localVarProps: Record<string, string> = {};
+
   for (const varName in styleDef.localVars) {
     const rawVal = styleDef.localVars[varName];
-    const finalVarName = `--${varName}-${classKey}`;
+    // ตัวแปรสุดท้าย => `--${varName}-${scopePart}`
+    const finalVarName = `--${varName}-${scopePart}`;
     localVarProps[finalVarName] = rawVal;
   }
+
+  // REGEX ไว้ replace LOCALVAR(xxx) => var(--xxx-scopePart)
   const placeholderRegex = /LOCALVAR\(([\w-]+)\)/g;
-  const replacer = (match: string, p1: string) => {
-    return `var(--${p1}-${classKey})`;
+  const replacer = (match: string, p1: string): string => {
+    const finalVarName = `--${p1}-${scopePart}`;
+    return `var(${finalVarName})`;
   };
 
-  // replace in base
-  for (const p in styleDef.base) {
-    styleDef.base[p] = styleDef.base[p].replace(placeholderRegex, replacer);
+  // replace ใน base
+  for (const prop in styleDef.base) {
+    styleDef.base[prop] = styleDef.base[prop].replace(placeholderRegex, replacer);
   }
+
   // states
-  for (const st in styleDef.states) {
-    for (const p in styleDef.states[st]) {
-      styleDef.states[st][p] = styleDef.states[st][p].replace(placeholderRegex, replacer);
+  for (const stName in styleDef.states) {
+    for (const prop in styleDef.states[stName]) {
+      styleDef.states[stName][prop] = styleDef.states[stName][prop].replace(
+        placeholderRegex,
+        replacer
+      );
     }
   }
+
   // pseudos
-  for (const pseudo in styleDef.pseudos) {
-    const obj = styleDef.pseudos[pseudo];
+  for (const pseudoName in styleDef.pseudos) {
+    const obj = styleDef.pseudos[pseudoName];
     if (!obj) continue;
-    for (const p in obj) {
-      obj[p] = obj[p].replace(placeholderRegex, replacer);
+    for (const prop in obj) {
+      obj[prop] = obj[prop].replace(placeholderRegex, replacer);
     }
   }
+
   // screens
-  for (const s of styleDef.screens) {
-    for (const p in s.props) {
-      s.props[p] = s.props[p].replace(placeholderRegex, replacer);
+  for (const scr of styleDef.screens) {
+    for (const prop in scr.props) {
+      scr.props[prop] = scr.props[prop].replace(placeholderRegex, replacer);
     }
   }
+
   // containers
-  for (const c of styleDef.containers) {
-    for (const p in c.props) {
-      c.props[p] = c.props[p].replace(placeholderRegex, replacer);
+  for (const ctnr of styleDef.containers) {
+    for (const prop in ctnr.props) {
+      ctnr.props[prop] = ctnr.props[prop].replace(placeholderRegex, replacer);
     }
   }
 
-  // queries
-  if (styleDef.queries) {
-    for (const q of styleDef.queries) {
-      for (const p in q.styleDef.base) {
-        q.styleDef.base[p] = q.styleDef.base[p].replace(placeholderRegex, replacer);
-      }
-      for (const st in q.styleDef.states) {
-        for (const p in q.styleDef.states[st]) {
-          q.styleDef.states[st][p] = q.styleDef.states[st][p].replace(placeholderRegex, replacer);
-        }
-      }
-      // ... similarly for pseudos, screens, containers
-      // (ถ้าต้องการ handle localVar ใน query)
-    }
-  }
-
-  // เก็บลง styleDef._resolvedLocalVars
+  // เก็บ mapping localVar => finalVarName ไว้ใน styleDef._resolvedLocalVars
   (styleDef as any)._resolvedLocalVars = localVarProps;
 }
 
@@ -1463,7 +1674,7 @@ function transformLocalVariables(styleDef: IStyleDefinition, classKey: string) {
 function buildCssText(displayName: string, styleDef: IStyleDefinition): string {
   let cssText = '';
 
-  // 1) rootVars => :root{...}
+  // ----- rootVars -----
   if (styleDef.rootVars) {
     let varBlock = '';
     for (const varName in styleDef.rootVars) {
@@ -1474,61 +1685,70 @@ function buildCssText(displayName: string, styleDef: IStyleDefinition): string {
     }
   }
 
-  // 2) base + local var
+  // ----- base + local vars -----
   let baseProps = '';
   const localVars = (styleDef as any)._resolvedLocalVars as Record<string, string> | undefined;
   if (localVars) {
-    for (const lvName in localVars) {
-      baseProps += `${lvName}:${localVars[lvName]};`;
+    for (const localVarName in localVars) {
+      baseProps += `${localVarName}:${localVars[localVarName]};`;
     }
   }
-  for (const p in styleDef.base) {
-    baseProps += `${p}:${styleDef.base[p]};`;
+  if (Object.keys(styleDef.base).length > 0) {
+    for (const prop in styleDef.base) {
+      baseProps += `${prop}:${styleDef.base[prop]};`;
+    }
   }
   if (baseProps) {
     cssText += `.${displayName}{${baseProps}}`;
   }
 
-  // 3) states
-  for (const st in styleDef.states) {
-    const obj = styleDef.states[st];
+  // ----- states -----
+  for (const state in styleDef.states) {
+    const obj = styleDef.states[state];
     let props = '';
     for (const p in obj) {
       props += `${p}:${obj[p]};`;
     }
-    cssText += `.${displayName}:${st}{${props}}`;
+    cssText += `.${displayName}:${state}{${props}}`;
   }
 
-  // 4) screens
-  for (const sc of styleDef.screens) {
+  // ----- screens -----
+  for (const scr of styleDef.screens) {
     let props = '';
-    for (const p in sc.props) {
-      props += `${p}:${sc.props[p]};`;
+    for (const p in scr.props) {
+      props += `${p}:${scr.props[p]};`;
     }
-    cssText += `@media only screen and ${sc.query}{.${displayName}{${props}}}`;
+    cssText += `@media only screen and ${scr.query}{.${displayName}{${props}}}`;
   }
 
-  // 5) containers
-  for (const c of styleDef.containers) {
+  // ----- containers -----
+  for (const ctnr of styleDef.containers) {
     let props = '';
-    for (const p in c.props) {
-      props += `${p}:${c.props[p]};`;
+    for (const p in ctnr.props) {
+      props += `${p}:${ctnr.props[p]};`;
     }
-    cssText += `@container ${c.query}{.${displayName}{${props}}}`;
+    cssText += `@container ${ctnr.query}{.${displayName}{${props}}}`;
   }
 
-  // 6) pseudos
-  for (const pseudo in styleDef.pseudos) {
-    const obj = styleDef.pseudos[pseudo];
-    if (!obj) continue;
-    let props = '';
-    for (const p in obj) {
-      props += `${p}:${obj[p]};`;
+  // ----- pseudos (อัปเดตให้รองรับหลาย pseudo) -----
+  if (styleDef.pseudos) {
+    for (const pseudoKey in styleDef.pseudos) {
+      const pseudoObj = styleDef.pseudos[pseudoKey];
+      if (!pseudoObj) continue;
+
+      // รวม property ใน pseudoObj
+      let pseudoProps = '';
+      for (const prop in pseudoObj) {
+        pseudoProps += `${prop}:${pseudoObj[prop]};`;
+      }
+
+      // เลือก selector ที่สอดคล้อง
+      const pseudoSelector = `::${pseudoKey}`;
+      cssText += `.${displayName}${pseudoSelector}{${pseudoProps}}`;
     }
-    cssText += `.${displayName}::${pseudo}{${props}}`;
   }
 
-  // 7) queries (nested @query)
+  // ----- queries -----
   if (styleDef.queries && styleDef.queries.length > 0) {
     for (const q of styleDef.queries) {
       cssText += buildQueryCssText(displayName, q.selector, q.styleDef);
@@ -1537,7 +1757,6 @@ function buildCssText(displayName: string, styleDef: IStyleDefinition): string {
 
   return cssText;
 }
-
 function buildQueryCssText(
   parentDisplayName: string,
   selector: string,
@@ -1545,57 +1764,66 @@ function buildQueryCssText(
 ): string {
   let out = '';
 
-  // base
+  // ----- base + local vars -----
   let baseProps = '';
   const localVars = (qDef as any)._resolvedLocalVars as Record<string, string> | undefined;
   if (localVars) {
-    for (const lvName in localVars) {
-      baseProps += `${lvName}:${localVars[lvName]};`;
+    for (const localVarName in localVars) {
+      baseProps += `${localVarName}:${localVars[localVarName]};`;
     }
   }
-  for (const p in qDef.base) {
-    baseProps += `${p}:${qDef.base[p]};`;
+  if (Object.keys(qDef.base).length > 0) {
+    for (const prop in qDef.base) {
+      baseProps += `${prop}:${qDef.base[prop]};`;
+    }
   }
   if (baseProps) {
     out += `.${parentDisplayName} ${selector}{${baseProps}}`;
   }
 
-  // states
-  for (const st in qDef.states) {
+  // ----- states -----
+  for (const state in qDef.states) {
+    const obj = qDef.states[state];
     let props = '';
-    for (const pp in qDef.states[st]) {
-      props += `${pp}:${qDef.states[st][pp]};`;
+    for (const p in obj) {
+      props += `${p}:${obj[p]};`;
     }
-    out += `.${parentDisplayName} ${selector}:${st}{${props}}`;
+    out += `.${parentDisplayName} ${selector}:${state}{${props}}`;
   }
 
-  // screens
-  for (const sc of qDef.screens) {
+  // ----- screens -----
+  for (const scr of qDef.screens) {
     let props = '';
-    for (const p in sc.props) {
-      props += `${p}:${sc.props[p]};`;
+    for (const p in scr.props) {
+      props += `${p}:${scr.props[p]};`;
     }
-    out += `@media only screen and ${sc.query}{.${parentDisplayName} ${selector}{${props}}}`;
+    out += `@media only screen and ${scr.query}{.${parentDisplayName} ${selector}{${props}}}`;
   }
 
-  // containers
-  for (const c of qDef.containers) {
+  // ----- containers -----
+  for (const ctnr of qDef.containers) {
     let props = '';
-    for (const p in c.props) {
-      props += `${p}:${c.props[p]};`;
+    for (const p in ctnr.props) {
+      props += `${p}:${ctnr.props[p]};`;
     }
-    out += `@container ${c.query}{.${parentDisplayName} ${selector}{${props}}}`;
+    out += `@container ${ctnr.query}{.${parentDisplayName} ${selector}{${props}}}`;
   }
 
-  // pseudos
-  for (const pseudo in qDef.pseudos) {
-    const obj = qDef.pseudos[pseudo];
-    if (!obj) continue;
-    let props = '';
-    for (const pp in obj) {
-      props += `${pp}:${obj[pp]};`;
+  // ----- pseudos (อัปเดตให้รองรับหลาย pseudo) -----
+  if (qDef.pseudos) {
+    for (const pseudoKey in qDef.pseudos) {
+      const pseudoObj = qDef.pseudos[pseudoKey];
+      if (!pseudoObj) continue;
+
+      let pseudoProps = '';
+      for (const p in pseudoObj) {
+        pseudoProps += `${p}:${pseudoObj[p]};`;
+      }
+
+      // ใช้ map เดียวกัน หรือจะประกาศซ้ำก็ได้
+      const pseudoSelector = `::${pseudoKey}`;
+      out += `.${parentDisplayName} ${selector}${pseudoSelector}{${pseudoProps}}`;
     }
-    out += `.${parentDisplayName} ${selector}::${pseudo}{${props}}`;
   }
 
   return out;
@@ -1633,8 +1861,9 @@ function generateSwdCssFromSource(sourceText: string): string {
   // 7) loop => transformVariables + transformLocalVariables => buildCss
   let finalCss = '';
   for (const [displayKey, styleDef] of classNameDefs.entries()) {
-    transFormVariables(styleDef, scopeName, displayKey);
-    transformLocalVariables(styleDef, displayKey);
+    const className = displayKey.replace(`${scopeName}_`, ''); // pure class name
+    transFormVariables(styleDef, scopeName, className);
+    transformLocalVariables(styleDef, scopeName, className);
     finalCss += buildCssText(displayKey, styleDef);
   }
 
