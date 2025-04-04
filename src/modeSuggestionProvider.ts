@@ -10,7 +10,7 @@ const modeList = ['dark', 'light', 'dim'];
 /**
  * createModeSuggestionProvider:
  *  - เป็น CompletionItemProvider
- *  - ทำงานเฉพาะไฟล์ .css.ts (language=typescript)
+ *  - ทำงานเฉพาะไฟล์ .swd.ts (language=typescript)
  *  - จับ pattern `// styledwind mode:` แล้ว Suggest รายชื่อโหมด
  */
 export function createModeSuggestionProvider() {
@@ -21,8 +21,8 @@ export function createModeSuggestionProvider() {
     ],
     {
       provideCompletionItems(document, position) {
-        // (1) เช็คว่าไฟล์ลงท้ายด้วย .css.ts
-        if (!document.fileName.endsWith('.css.ts')) {
+        // (1) เช็คว่าไฟล์ลงท้ายด้วย .swd.ts
+        if (!document.fileName.endsWith('.swd.ts')) {
           return;
         }
 

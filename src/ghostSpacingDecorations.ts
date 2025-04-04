@@ -26,13 +26,13 @@ export function initSpacingMap(dict: Record<string, string>) {
 /**
  * updateSpacingDecorations:
  *  - เรียกเมื่อ text ในเอกสารเปลี่ยน หรือเปลี่ยน active editor
- *  - ถ้าไม่ใช่ไฟล์ .css.ts => เคลียร์ decoration
- *  - ถ้าเป็น .css.ts => regex จับ "--xxx"
+ *  - ถ้าไม่ใช่ไฟล์ .swd.ts => เคลียร์ decoration
+ *  - ถ้าเป็น .swd.ts => regex จับ "--xxx"
  *    แล้วถ้า xxx อยู่ใน spacingMap => แสดง ghost text ":<value>"
  */
 export function updateSpacingDecorations(editor: vscode.TextEditor) {
-  // 1) เช็คว่าเป็น .css.ts ไหม
-  if (!editor.document.fileName.endsWith('.css.ts')) {
+  // 1) เช็คว่าเป็น .swd.ts ไหม
+  if (!editor.document.fileName.endsWith('.swd.ts')) {
     // ไม่ใช่ => ล้าง decoration
     editor.setDecorations(ghostSpacingDecorationType, []);
     return;

@@ -78,8 +78,8 @@ export function createReversePropertyProvider() {
     ],
     {
       provideCompletionItems(document, position) {
-        // แสดงเฉพาะไฟล์ *.css.ts
-        if (!document.fileName.endsWith('.css.ts')) {
+        // แสดงเฉพาะไฟล์ *.swd.ts
+        if (!document.fileName.endsWith('.swd.ts')) {
           return;
         }
 

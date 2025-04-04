@@ -15,8 +15,8 @@ export function createDefineProvider(defineMap: Record<string, string[]>) {
     ],
     {
       provideCompletionItems(document, position) {
-        // 1) เช็คว่าเป็น .css.ts เท่านั้น
-        if (!document.fileName.endsWith('.css.ts')) {
+        // 1) เช็คว่าเป็น .swd.ts เท่านั้น
+        if (!document.fileName.endsWith('.swd.ts')) {
           return;
         }
 

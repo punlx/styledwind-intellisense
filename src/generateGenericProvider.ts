@@ -344,10 +344,10 @@ export const generateGenericProvider = vscode.commands.registerCommand(
       return;
     }
 
-    // ตรวจว่าไฟล์ลงท้าย .css.ts
+    // ตรวจว่าไฟล์ลงท้าย .swd.ts
     const doc = editor.document;
-    if (!doc.fileName.endsWith('.css.ts')) {
-      vscode.window.showWarningMessage('This command is intended for *.css.ts files');
+    if (!doc.fileName.endsWith('.swd.ts')) {
+      vscode.window.showWarningMessage('This command is intended for *.swd.ts files');
       return;
     }
 
@@ -355,10 +355,6 @@ export const generateGenericProvider = vscode.commands.registerCommand(
     const fullText = doc.getText();
     const newText = generateGeneric(fullText);
 
-    if (newText === fullText) {
-      vscode.window.showInformationMessage('No changes needed or no styled(...) found');
-      return;
-    }
 
     // apply edit
     const edit = new vscode.WorkspaceEdit();
@@ -366,6 +362,5 @@ export const generateGenericProvider = vscode.commands.registerCommand(
     edit.replace(doc.uri, fullRange, newText);
     await vscode.workspace.applyEdit(edit);
 
-    vscode.window.showInformationMessage('Generic updated for styled(...)!');
   }
 );

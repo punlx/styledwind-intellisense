@@ -34,6 +34,7 @@ import { createLocalVarProvider } from './localVarProvider';
 import { createStyledwindThemeColorProvider } from './themePaletteColorProvider';
 import { createCssTsColorProvider, initPaletteMap } from './cssTsColorProvider';
 import { createModeSuggestionProvider } from './modeSuggestionProvider';
+import { createQueryPseudoProvider } from './createQueryPseudoProvider';
 
 // ghostSpacingDecorations
 import { initSpacingMap, updateSpacingDecorations } from './ghostSpacingDecorations';
@@ -94,7 +95,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const defineProviderDisposable = createDefineProvider(defineMap);
   const defineTopKeyProviderDisposable = createDefineTopKeyProvider(defineMap);
-
+  const queryPseudoProvider = createQueryPseudoProvider();
   context.subscriptions.push(
     localVarProviderDisposable,
     bracketProvider,
@@ -112,7 +113,8 @@ export async function activate(context: vscode.ExtensionContext) {
     cssTsColorProviderDisposable,
     commentModeSuggestionProvider,
     defineProviderDisposable,
-    defineTopKeyProviderDisposable
+    defineTopKeyProviderDisposable,
+    queryPseudoProvider
   );
 
   // 3) Init spacingMap

@@ -9,8 +9,8 @@ export function createUseConstProvider() {
     ],
     {
       provideCompletionItems(document, position) {
-        // 1) ใช้เฉพาะ .css.ts
-        if (!document.fileName.endsWith('.css.ts')) {
+        // 1) ใช้เฉพาะ .swd.ts
+        if (!document.fileName.endsWith('.swd.ts')) {
           return;
         }
 

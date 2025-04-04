@@ -17,8 +17,8 @@ export function createColorProvider(paletteMap: Record<string, Record<string, st
     ],
     {
       provideCompletionItems(document, position) {
-        // 1) เฉพาะไฟล์ .css.ts
-        if (!document.fileName.endsWith('.css.ts')) {
+        // 1) เฉพาะไฟล์ .swd.ts
+        if (!document.fileName.endsWith('.swd.ts')) {
           return;
         }
 

@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 
 /**
  * createLocalVarProvider:
- * - Trigger เมื่อผู้ใช้พิมพ์ '--&' ในไฟล์ .css.ts
+ * - Trigger เมื่อผู้ใช้พิมพ์ '--&' ในไฟล์ .swd.ts
  * - ถ้าอยู่ใน @const block => Suggest local variable ทั้งไฟล์
  * - ถ้าอยู่ใน .className block => Suggest local variable ที่อยู่ภายในคลาสนั้น
  */
@@ -15,8 +15,8 @@ export function createLocalVarProvider() {
     ],
     {
       provideCompletionItems(document, position) {
-        // 1) ต้องเป็นไฟล์ .css.ts เท่านั้น
-        if (!document.fileName.endsWith('.css.ts')) {
+        // 1) ต้องเป็นไฟล์ .swd.ts เท่านั้น
+        if (!document.fileName.endsWith('.swd.ts')) {
           return;
         }
 
@@ -83,7 +83,7 @@ interface LocalVarInfo {
 
 /**
  * parseLocalVariables:
- * - สแกนทั้งไฟล์ .css.ts
+ * - สแกนทั้งไฟล์ .swd.ts
  * - ใช้วิธี stack เพื่อรู้ว่าอยู่ใน block ของ .className ไหน หรืออยู่ใน block @const
  * - ทุกครั้งที่เจอ local variable รูป `--&xxxx[...]` ให้เก็บไว้ใน allVars
  *   และใน classVarsMap[className] (ถ้าอยู่ใน class block)

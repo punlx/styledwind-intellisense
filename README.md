@@ -1,12 +1,12 @@
 # Styledwind Intellisense
 
-A VSCode extension that provides autocompletion (Intellisense) for [**Styledwind**](https://github.com/punlx/styledwind-intellisense) in `*.css.ts` files. It parses abbreviations like `bg[`, `c[`, `bd[`, etc., and also automatically detects and reads your `styledwind.theme.ts` file to suggest color variables (e.g., `--blue-100`) upon typing `--`.
+A VSCode extension that provides autocompletion (Intellisense) for [**Styledwind**](https://github.com/punlx/styledwind-intellisense) in `*.swd.ts` files. It parses abbreviations like `bg[`, `c[`, `bd[`, etc., and also automatically detects and reads your `styledwind.theme.ts` file to suggest color variables (e.g., `--blue-100`) upon typing `--`.
 
 ## Features
 
 1. **Bracket-Based Property Suggestions**
 
-   - When you type `bg[`, `c[`, `jc[`, etc. in a `.css.ts` file, this extension will suggest CSS values defined in its internal map or your custom definitions.
+   - When you type `bg[`, `c[`, `jc[`, etc. in a `.swd.ts` file, this extension will suggest CSS values defined in its internal map or your custom definitions.
    - For example, typing `bg[` will list color values like `red`, `blue`, `green`, etc.
 
 2. **Automatic Theme Detection**
@@ -21,8 +21,8 @@ A VSCode extension that provides autocompletion (Intellisense) for [**Styledwind
    - No additional configuration is needed if your `styledwind.theme.ts` is located at the project root (or not deeply nested).
 
 4. **No Extra Language Setup**
-   - By default, `.css.ts` files are treated as TypeScript (with `"files.associations": { "*.css.ts": "typescript" }` in your VSCode settings).
-   - The extension only triggers autocompletion for files ending with `.css.ts`.
+   - By default, `.swd.ts` files are treated as TypeScript (with `"files.associations": { "*.swd.ts": "typescript" }` in your VSCode settings).
+   - The extension only triggers autocompletion for files ending with `.swd.ts`.
 
 ## Installation
 
@@ -46,7 +46,7 @@ _(Alternatively, if you have a `.vsix` package, install it in VSCode via “Exte
    ]);
    ```
 
-2. In any \*.css.ts file:
+2. In any \*.swd.ts file:
 
    - Type something like:
 
@@ -64,7 +64,7 @@ _(Alternatively, if you have a `.vsix` package, install it in VSCode via “Exte
 
 # FAQ
 
-**Why do I need "files.associations": { "\*.css.ts": "typescript" }"?** VSCode does not recognize \*.css.tsas TypeScript out of the box. By associating it withtypescript`, you get proper syntax highlighting and TS language features.
+**Why do I need "files.associations": { "\*.swd.ts": "typescript" }"?** VSCode does not recognize \*.swd.tsas TypeScript out of the box. By associating it withtypescript`, you get proper syntax highlighting and TS language features.
 
 What if my theme file structure differs from the default pattern?
 The extension uses a regex approach to parse theme.palette([...]). If your code significantly deviates from the default array format, you might need to modify the parsing logic in the extension code.

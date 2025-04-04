@@ -16,7 +16,7 @@ export function createKeyframeProvider(keyframeDict: Record<string, string>) {
     ],
     {
       provideCompletionItems(document, position) {
-        if (!document.fileName.endsWith('.css.ts')) {
+        if (!document.fileName.endsWith('.swd.ts')) {
           return;
         }
 

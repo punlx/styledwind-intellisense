@@ -5,20 +5,20 @@ import * as path from 'path';
 
 /**
  * createSwdCssFile:
- * - ตรวจไฟล์ .css.ts ปัจจุบัน (ผ่าน doc)
- * - สร้างไฟล์ .swd.css ชื่อเดียวกัน (ตัด .css.ts => .swd.css)
+ * - ตรวจไฟล์ .swd.ts ปัจจุบัน (ผ่าน doc)
+ * - สร้างไฟล์ .swd.css ชื่อเดียวกัน (ตัด .swd.ts => .swd.css)
  * - วางในโฟลเดอร์เดียวกัน (ข้าง ๆ)
  * - insert import "./xxx.swd.css" ที่บรรทัดแรก
  */
 export async function createSwdCssFile(doc: vscode.TextDocument) {
-  // 1) เช็คไฟล์ลงท้าย ".css.ts" ไหม
-  if (!doc.fileName.endsWith('.css.ts')) {
+  // 1) เช็คไฟล์ลงท้าย ".swd.ts" ไหม
+  if (!doc.fileName.endsWith('.swd.ts')) {
     return;
   }
 
-  // 2) basename => "xxx.css.ts" => "xxx"
-  const fileName = path.basename(doc.fileName); // ex. "app.css.ts"
-  const base = fileName.replace(/\.css\.ts$/, ''); // -> "app"
+  // 2) basename => "xxx.swd.ts" => "xxx"
+  const fileName = path.basename(doc.fileName); // ex. "app.swd.ts"
+  const base = fileName.replace(/\.swd\.ts$/, ''); // -> "app"
 
   // 3) เอา dir ของ doc => จะสร้างไฟล์ .swd.css ข้าง ๆ
   const currentDir = path.dirname(doc.fileName);
@@ -57,6 +57,4 @@ export async function createSwdCssFile(doc: vscode.TextDocument) {
   edit.replace(doc.uri, fullRange, finalText);
 
   await vscode.workspace.applyEdit(edit);
-
-  vscode.window.showInformationMessage(`Created .swd.css next to: ${fileName}`);
 }

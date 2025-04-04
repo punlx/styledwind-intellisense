@@ -36,7 +36,7 @@ export async function initPaletteMap() {
 
 /**
  * createCssTsColorProvider:
- *  - ทำงานเฉพาะไฟล์ *.css.ts (ต้องเป็น language=typescript, scheme=file)
+ *  - ทำงานเฉพาะไฟล์ *.swd.ts (ต้องเป็น language=typescript, scheme=file)
  *  - ใช้ DocumentColorProvider เพื่อแสดง swatch สี ตาม pattern /([-\w&]+)\[([^\]]+)\]/g
  *    ex. "bg[--blue-100]", "c[#ffffff]", "bd-c[red]", "bd[2px solid red]"
  *    หรือ "--&color[red]"
@@ -44,7 +44,7 @@ export async function initPaletteMap() {
 export function createCssTsColorProvider() {
   return vscode.languages.registerColorProvider(
     {
-      pattern: '**/*.css.ts',
+      pattern: '**/*.swd.ts',
       scheme: 'file',
       language: 'typescript',
     },

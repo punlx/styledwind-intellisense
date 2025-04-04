@@ -11,8 +11,8 @@ export function createSwdSnippetProvider() {
     ],
     {
       provideCompletionItems(document, position) {
-        // 1) ต้องเป็น .css.ts
-        if (!document.fileName.endsWith('.css.ts')) {
+        // 1) ต้องเป็น .swd.ts
+        if (!document.fileName.endsWith('.swd.ts')) {
           return;
         }
 
@@ -25,8 +25,8 @@ export function createSwdSnippetProvider() {
           return;
         }
 
-        // ดึงชื่อไฟล์มาตัด ".css.ts" ออก
-        const fileName = path.basename(document.fileName, '.css.ts');
+        // ดึงชื่อไฟล์มาตัด ".swd.ts" ออก
+        const fileName = path.basename(document.fileName, '.swd.ts');
 
         // 4) สร้าง snippet
         const snippetItem = new vscode.CompletionItem(
