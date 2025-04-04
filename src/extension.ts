@@ -92,10 +92,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const paletteProvider = createStyledwindThemeColorProvider();
   const cssTsColorProviderDisposable = createCssTsColorProvider();
   const commentModeSuggestionProvider = createModeSuggestionProvider();
-
   const defineProviderDisposable = createDefineProvider(defineMap);
   const defineTopKeyProviderDisposable = createDefineTopKeyProvider(defineMap);
   const queryPseudoProvider = createQueryPseudoProvider();
+
   context.subscriptions.push(
     localVarProviderDisposable,
     bracketProvider,
@@ -171,6 +171,15 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(combinedCommand);
+
+  // **** (ใหม่) Auto-run command ตอน save
+  // ถ้าเป็น .css.ts => เรียก "styledwind.createSwdCssAndGenerate"
+  const saveDisposable = vscode.workspace.onDidSaveTextDocument(async (savedDoc) => {
+    if (savedDoc.fileName.endsWith('.swd.ts')) {
+      await vscode.commands.executeCommand('styledwind.createSwdCssAndGenerate');
+    }
+  });
+  context.subscriptions.push(saveDisposable);
 }
 
 export function deactivate() {

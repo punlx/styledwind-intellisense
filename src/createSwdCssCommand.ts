@@ -31,7 +31,7 @@ export async function createSwdCssFile(doc: vscode.TextDocument) {
 
   // 5) วาง import line => "./app.swd.css"
   const relImport = `./${base}.swd.css`; // เพราะอยู่ dir เดียวกัน
-  const importLine = `import "${relImport}";\n`;
+  const importLine = `import '${relImport}';\n`;
 
   // 6) ลบ import เก่าที่เคยอ้างอิง .swd.css เดียวกัน (ถ้าเคยมี)
   const sanitizedBase = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

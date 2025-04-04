@@ -194,7 +194,7 @@ function generateGeneric(sourceCode: string): string {
   // -----------------------------------------------------------------------------
   const classEntries = Object.keys(classMap).map((clsName) => {
     const arr = Array.from(classMap[clsName]);
-    const arrLiteral = arr.map((a) => `"${a}"`).join(', ');
+    const arrLiteral = arr.map((a) => `'${a}'`).join(', ');
     return `${clsName}: [${arrLiteral}]`;
   });
 
@@ -355,12 +355,10 @@ export const generateGenericProvider = vscode.commands.registerCommand(
     const fullText = doc.getText();
     const newText = generateGeneric(fullText);
 
-
     // apply edit
     const edit = new vscode.WorkspaceEdit();
     const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(fullText.length));
     edit.replace(doc.uri, fullRange, newText);
     await vscode.workspace.applyEdit(edit);
-
   }
 );
