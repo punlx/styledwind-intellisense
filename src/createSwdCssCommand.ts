@@ -638,7 +638,7 @@ export function parseBaseStyle(
   }
 }
 /** parseStateStyle - ex. hover(bg[red]) **/
-export function parseStateStyle(
+function parseStateStyle(
   abbrLine: string,
   styleDef: IStyleDefinition,
   isConstContext: boolean = false
@@ -659,15 +659,43 @@ export function parseStateStyle(
     const [abbr, val] = separateStyleAndProperties(tokenNoBang);
     if (!abbr) continue;
 
+    // ----- ตรวจ usage ของ --&xxx ใน abbr (เช่น hover(--&color[...]) ) -----
+    if (abbr.includes('--&')) {
+      // match e.g. "--&color"
+      const localVarMatches = abbr.match(/--&([\w-]+)/g) || [];
+      for (const matchVar of localVarMatches) {
+        const localVarName = matchVar.replace('--&', '');
+        if (!styleDef.localVars?.[localVarName]) {
+          throw new Error(
+            `[SWD-ERR] Using local var "${matchVar}" in state "${funcName}" before it is declared in base.`
+          );
+        }
+      }
+    }
+
     const expansions = [`${abbr}[${val}]`];
     for (const ex of expansions) {
       const [abbr2, val2] = separateStyleAndProperties(ex);
       if (!abbr2) continue;
 
+      // ----- ตรวจ !important + local var -----
       if (abbr2.startsWith('--&') && isImportant) {
         throw new Error(
           `[SWD-ERR] !important is not allowed with local var (${abbr2}) in state ${funcName}.`
         );
+      }
+
+      // ----- ตรวจ usage ของ --&xxx ใน val2 (เช่น hover(bg[--&color])) -----
+      if (val2.includes('--&')) {
+        const usedLocalVars = val2.match(/--&([\w-]+)/g) || [];
+        for (const usage of usedLocalVars) {
+          const localVarName = usage.replace('--&', '');
+          if (!styleDef.localVars?.[localVarName]) {
+            throw new Error(
+              `[SWD-ERR] Using local var "${usage}" in state "${funcName}" before it is declared in base.`
+            );
+          }
+        }
       }
 
       const isVar = abbr2.startsWith('$');
@@ -738,6 +766,19 @@ function parsePseudoElementStyle(
     const [abbr, val] = separateStyleAndProperties(tokenNoBang);
     if (!abbr) continue;
 
+    // ----- ตรวจ usage ของ --&xxx ใน abbr -----
+    if (abbr.includes('--&')) {
+      const localVarMatches = abbr.match(/--&([\w-]+)/g) || [];
+      for (const matchVar of localVarMatches) {
+        const localVarName = matchVar.replace('--&', '');
+        if (!styleDef.localVars?.[localVarName]) {
+          throw new Error(
+            `[SWD-ERR] Using local var "${matchVar}" in pseudo ${pseudoName} before it is declared in base.`
+          );
+        }
+      }
+    }
+
     if (abbr.startsWith('--&') && isImportant) {
       throw new Error(
         `[SWD-ERR] !important is not allowed with local var (${abbr}) in pseudo ${pseudoName}.`
@@ -756,6 +797,19 @@ function parsePseudoElementStyle(
 
       const isVariable = abbr2.startsWith('$');
       const realAbbr = isVariable ? abbr2.slice(1) : abbr2;
+
+      // ----- ตรวจ usage ของ --&xxx ใน val2 -----
+      if (val2.includes('--&')) {
+        const usedLocalVars = val2.match(/--&([\w-]+)/g) || [];
+        for (const usage of usedLocalVars) {
+          const localVarName = usage.replace('--&', '');
+          if (!styleDef.localVars?.[localVarName]) {
+            throw new Error(
+              `[SWD-ERR] Using local var "${usage}" in pseudo ${pseudoName} before it is declared in base.`
+            );
+          }
+        }
+      }
 
       // เดิม: if (realAbbr === 'f') => fontDict
       // ใหม่: if (realAbbr === 'ty') => typographyDict
@@ -800,7 +854,7 @@ function parsePseudoElementStyle(
     - ตัวอย่าง omitted หรือ simplified ...
 **/
 
-export function parseScreenStyle(
+function parseScreenStyle(
   abbrLine: string,
   styleDef: IStyleDefinition,
   isConstContext: boolean = false
@@ -851,14 +905,41 @@ export function parseScreenStyle(
     const [abbr, val] = separateStyleAndProperties(tokenNoBang);
     if (!abbr) continue;
 
+    // ----- ตรวจ usage ของ --&xxx ใน abbr -----
+    if (abbr.includes('--&')) {
+      const localVarMatches = abbr.match(/--&([\w-]+)/g) || [];
+      for (const matchVar of localVarMatches) {
+        const localVarName = matchVar.replace('--&', '');
+        if (!styleDef.localVars?.[localVarName]) {
+          throw new Error(
+            `[SWD-ERR] Using local var "${matchVar}" in screen(...) before it is declared in base.`
+          );
+        }
+      }
+    }
+
     const expansions = [`${abbr}[${val}]`];
 
     for (const ex of expansions) {
       const [abbr2, val2] = separateStyleAndProperties(ex);
       if (!abbr2) continue;
 
+      // ----- ตรวจ !important + local var -----
       if (abbr2.startsWith('--&') && isImportant) {
         throw new Error(`[SWD-ERR] !important is not allowed with local var (${abbr2}) in screen.`);
+      }
+
+      // ----- ตรวจ usage ของ --&xxx ใน val2 -----
+      if (val2.includes('--&')) {
+        const usedLocalVars = val2.match(/--&([\w-]+)/g) || [];
+        for (const usage of usedLocalVars) {
+          const localVarName = usage.replace('--&', '');
+          if (!styleDef.localVars?.[localVarName]) {
+            throw new Error(
+              `[SWD-ERR] Using local var "${usage}" in screen(...) before it is declared in base.`
+            );
+          }
+        }
       }
 
       // เดิม: if (abbr2 === 'f') => fontDict
@@ -938,8 +1019,22 @@ function parseContainerStyle(
     if (isConstContext && isImportant) {
       throw new Error(`[SWD-ERR] !important is not allowed in @const block. Found: "${abbrLine}"`);
     }
+
     const [abbr, val] = separateStyleAndProperties(tokenNoBang);
     if (!abbr) continue;
+
+    // ----- ตรวจ usage ของ --&xxx ใน abbr -----
+    if (abbr.includes('--&')) {
+      const localVarMatches = abbr.match(/--&([\w-]+)/g) || [];
+      for (const matchVar of localVarMatches) {
+        const localVarName = matchVar.replace('--&', '');
+        if (!styleDef.localVars?.[localVarName]) {
+          throw new Error(
+            `[SWD-ERR] Using local var "${matchVar}" in container(...) before it is declared in base.`
+          );
+        }
+      }
+    }
 
     const expansions = [`${abbr}[${val}]`];
     for (const ex of expansions) {
@@ -950,6 +1045,19 @@ function parseContainerStyle(
         throw new Error(
           `[SWD-ERR] !important is not allowed with local var (${abbr2}) in container.`
         );
+      }
+
+      // ----- ตรวจ usage ของ --&xxx ใน val2 -----
+      if (val2.includes('--&')) {
+        const usedLocalVars = val2.match(/--&([\w-]+)/g) || [];
+        for (const usage of usedLocalVars) {
+          const localVarName = usage.replace('--&', '');
+          if (!styleDef.localVars?.[localVarName]) {
+            throw new Error(
+              `[SWD-ERR] Using local var "${usage}" in container(...) before it is declared in base.`
+            );
+          }
+        }
       }
 
       // เดิม: if (abbr2 === 'f') => fontDict
