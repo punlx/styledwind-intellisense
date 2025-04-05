@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IStyleDefinition } from './types';
+
 import { ensureScopeUnique } from './utils/ensureScopeUnique';
 import { parseDirectives } from './parsers/parseDirectives';
 import { processClassBlocks } from './helpers/processClassBlocks';
@@ -12,41 +13,13 @@ import { transformLocalVariables } from './transformers/transformLocalVariables'
 import { buildCssText } from './builders/buildCssText';
 
 /* -------------------------------------------------------------------------
-   สำหรับฟีเจอร์ theme/globalDefineMap (คล้าย @const แต่ประกาศระดับ global)
-   - หากต้องการ parse เพิ่มจากไฟล์อื่น หรือ theme.define(...) ก็สามารถขยาย logic ได้
-   ------------------------------------------------------------------------- */
+   globalDefineMap – ถ้าต้องการฟีเจอร์ @const / theme.define ข้ามไฟล์
+------------------------------------------------------------------------- */
 export const globalDefineMap: Record<string, Record<string, IStyleDefinition>> = {};
 
 /* -------------------------------------------------------------------------
-   Section C: abbrMap + known states/pseudos
-   (ตัวอย่างสั้น ๆ หากต้องการเพิ่มเติม ให้ใส่ใน abbrMap ได้)
-   ------------------------------------------------------------------------- */
-
-/* -------------------------------------------------------------------------
-   Section D: Helper สำหรับสร้าง styleDef / parse abbr / etc.
-   ------------------------------------------------------------------------- */
-
-/** แยก abbrLine => ตัวอย่าง "bg[red]" => ["bg","red"] **/
-
-/** replace "--xxx" => "var(--xxx)" **/
-
-/* -------------------------------------------------------------------------
-   parseVariableAbbr + buildVariableName (รองรับ $bg-hover => base: "bg", suffix: "hover")
-   ------------------------------------------------------------------------- */
-
-/* -------------------------------------------------------------------------
-  checkAndReplaceLocalVarUsage
-   ------------------------------------------------------------------------- */
-
-/* -------------------------------------------------------------------------
-   Section E: parseSingleAbbr - parse base/state/pseudo/... + !important checks
-   ------------------------------------------------------------------------- */
-
-/** parseStateStyle - ex. hover(bg[red]) **/
-
-/* -------------------------------------------------------------------------
-   Section M: ฟังก์ชันหลัก generateSwdCssFromSource
-   ------------------------------------------------------------------------- */
+   ฟังก์ชัน generateSwdCssFromSource - parse + generate CSS (ไม่มี Diagnostic)
+------------------------------------------------------------------------- */
 export function generateSwdCssFromSource(sourceText: string): string {
   // 1) parseDirectives
   const { directives, classBlocks, constBlocks } = parseDirectives(sourceText);
@@ -73,7 +46,7 @@ export function generateSwdCssFromSource(sourceText: string): string {
   // 6) handleBindDirectives
   handleBindDirectives(scopeName, directives, classNameDefs);
 
-  // 7) loop => transformVariables + transformLocalVariables => buildCss
+  // 7) transformVariables + transformLocalVariables => buildCss
   let finalCss = '';
   for (const [displayKey, styleDef] of classNameDefs.entries()) {
     const className = displayKey.replace(`${scopeName}_`, ''); // pure class name
@@ -86,28 +59,24 @@ export function generateSwdCssFromSource(sourceText: string): string {
 }
 
 /* -------------------------------------------------------------------------
-   Section N: ฟังก์ชันหลัก createSwdCssFile(doc)
-   - command สำหรับ extension
-   ------------------------------------------------------------------------- */
-
-/* -------------------------------------------------------------------------
-   Section N: ฟังก์ชันหลัก createSwdCssFile(doc)
-   - command สำหรับ extension
-   ------------------------------------------------------------------------- */
-export async function createSwdCssFile(
-  doc: vscode.TextDocument,
-  diagnosticCollection: vscode.DiagnosticCollection
-) {
-  // 1) ตรวจไฟล์ .swd.ts
+   ฟังก์ชัน createSwdCssFile(doc)
+   – ทำหน้าที่: 
+     1) แก้ import line ในไฟล์ .swd.ts
+     2) generate CSS (ถ้า parse error => throw)
+     3) เขียนไฟล์ .swd.css
+   – **ไม่มี** การ set Diagnostic ในนี้
+------------------------------------------------------------------------- */
+export async function createSwdCssFile(doc: vscode.TextDocument) {
+  // 1) เช็คไฟล์
   if (!doc.fileName.endsWith('.swd.ts')) {
     return;
   }
 
   // 2) basename => "xxx.swd.ts" => "xxx"
-  const fileName = path.basename(doc.fileName); // ex. "app.swd.ts"
-  const base = fileName.replace(/\.swd\.ts$/, ''); // -> "app"
+  const fileName = path.basename(doc.fileName);
+  const base = fileName.replace(/\.swd\.ts$/, '');
 
-  // 3) สร้างไฟล์ .swd.css ข้าง ๆ
+  // 3) สร้างไฟล์ .swd.css ถ้ายังไม่มี
   const currentDir = path.dirname(doc.fileName);
   const newCssFilePath = path.join(currentDir, base + '.swd.css');
   if (!fs.existsSync(newCssFilePath)) {
@@ -118,24 +87,17 @@ export async function createSwdCssFile(
   const relImport = `./${base}.swd.css`;
   const importLine = `import '${relImport}';\n`;
 
-  // ล้าง diagnostics เดิมก่อน (หากมี)
-  diagnosticCollection.delete(doc.uri);
-
-  // เตรียมแก้ไขเนื้อหาไฟล์ปัจจุบัน
   const fullText = doc.getText();
   const sanitizedBase = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const oldRegex = new RegExp(
     `^import\\s+["'][^"']*${sanitizedBase}\\.swd\\.css["'];?\\s*(?:\\r?\\n)?`,
     'm'
   );
-
-  // ลบ import เดิม เพื่อป้องกันซ้ำ
   let newText = fullText.replace(oldRegex, '');
   newText = newText.replace(/\n{2,}/g, '\n');
-  // prepend import line
   const finalText = importLine + newText;
 
-  // apply edit ให้กับ Document
+  // apply edit
   const edit = new vscode.WorkspaceEdit();
   const fullRange = new vscode.Range(
     new vscode.Position(0, 0),
@@ -144,36 +106,18 @@ export async function createSwdCssFile(
   edit.replace(doc.uri, fullRange, finalText);
   await vscode.workspace.applyEdit(edit);
 
-  // --------------------------------------------------------
-  // (A) Parse => Generate CSS
-  // --------------------------------------------------------
+  // 5) parse + generate
   const sourceText = finalText.replace(importLine, '');
-  let generatedCss = '';
-
+  let generatedCss: string;
   try {
     generatedCss = generateSwdCssFromSource(sourceText);
-  } catch (e: any) {
-    // 1) แจ้ง Error ผ่าน Notification
-    vscode.window.showErrorMessage(`Styledwind parse error: ${e.message}`);
-
-    // 2) ส่ง Error เข้า Problems Panel ด้วย Diagnostic
-    const diag: vscode.Diagnostic = {
-      message: e.message,
-      severity: vscode.DiagnosticSeverity.Error,
-      source: 'Styledwind Intellisense',
-      range: new vscode.Range(0, 0, 0, 0), // ระบุ range แบบง่าย (ต้นไฟล์)
-    };
-    diagnosticCollection.set(doc.uri, [diag]);
-
-    // 3) โยน error กลับเพื่อให้ command เรียกต่อหยุด
-    throw e;
+  } catch (err) {
+    // parse error => โยน error กลับ
+    // (จะแจ้ง error ที่ไหนก็ตามสะดวก – ที่นี่ลองใส่ showErrorMessage หรือไม่ก็ได้)
+    vscode.window.showErrorMessage(`Styledwind parse error: ${(err as Error).message}`);
+    throw err;
   }
 
-  // ถ้า success => เคลียร์ diagnostic (ถ้ามี)
-  diagnosticCollection.delete(doc.uri);
-
-  // --------------------------------------------------------
-  // (B) เขียนไฟล์ .swd.css
-  // --------------------------------------------------------
+  // 6) เขียนไฟล์ .swd.css
   fs.writeFileSync(newCssFilePath, generatedCss, 'utf8');
 }
