@@ -1,6 +1,9 @@
 // extension.ts
 import * as vscode from 'vscode';
 
+// --- (NEW) import createStyledwindThemeCssFile ---
+import { createSwdThemeCssFile } from './generateCssCommand/createSwdThemeCssCommand';
+
 // import validateSwdDoc.ts ซึ่งไว้ parse-check ใส่ Diagnostic
 import { validateSwdDoc } from './generateCssCommand/validateSwdDoc';
 
@@ -124,6 +127,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   initSpacingMap(spacingDict);
 
+  // ตกแต่ง GhostText / Decorator
   if (vscode.window.activeTextEditor) {
     updateDecorations(vscode.window.activeTextEditor);
     updateSpacingDecorations(vscode.window.activeTextEditor);
@@ -175,7 +179,7 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      // ถ้าไม่มี error => createSwdCssFile => ถ้า parse error => throw => caught => stop
+      // ถ้าไม่มี error => createSwdCssFile
       try {
         await createSwdCssFile(savedDoc);
       } catch (err) {
@@ -201,29 +205,40 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      // (1) validate
       validateSwdDoc(editor.document, styledwindDiagnosticCollection);
-
-      // (2) check error
       const diags = styledwindDiagnosticCollection.get(editor.document.uri);
       const hasErr = diags && diags.some((d) => d.severity === vscode.DiagnosticSeverity.Error);
       if (hasErr) {
         return;
       }
 
-      // (3) createSwdCssFile
       try {
         await createSwdCssFile(editor.document);
       } catch (err) {
         return;
       }
 
-      // (4) generateGeneric
       await vscode.commands.executeCommand('styledwind.generateGeneric');
-      // vscode.window.showInformationMessage('Created .swd.css and Generated Generic done!');
     }
   );
   context.subscriptions.push(combinedCommand);
+
+  // --------------------------------------------------------------------------------
+  // (NEW) เมื่อ save ไฟล์ styledwind.theme.ts => generate styledwind.theme.css
+  // --------------------------------------------------------------------------------
+  const themeSaveDisposable = vscode.workspace.onDidSaveTextDocument(async (savedDoc) => {
+    if (savedDoc.fileName.endsWith('styledwind.theme.ts')) {
+      try {
+        // (คุณจะ validate อะไรก่อนก็ได้)
+        await createSwdThemeCssFile(savedDoc);
+        vscode.window.showInformationMessage('styledwind.theme.css generated successfully!');
+      } catch (error) {
+        // handle error
+        console.error('Error generating styledwind.theme.css =>', error);
+      }
+    }
+  });
+  context.subscriptions.push(themeSaveDisposable);
 }
 
 export function deactivate() {
