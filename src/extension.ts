@@ -184,7 +184,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // no error => styledwind.generateGeneric
       await vscode.commands.executeCommand('styledwind.generateGeneric');
-      vscode.window.showInformationMessage('Created .swd.css and Generated Generic done!');
+      // vscode.window.showInformationMessage('Created .swd.css and Generated Generic done!');
     }
   });
   context.subscriptions.push(saveDisposable);
@@ -220,7 +220,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // (4) generateGeneric
       await vscode.commands.executeCommand('styledwind.generateGeneric');
-      vscode.window.showInformationMessage('Created .swd.css and Generated Generic done!');
+      // vscode.window.showInformationMessage('Created .swd.css and Generated Generic done!');
     }
   );
   context.subscriptions.push(combinedCommand);

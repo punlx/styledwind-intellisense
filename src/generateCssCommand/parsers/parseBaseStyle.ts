@@ -47,10 +47,16 @@ export function parseBaseStyle(
       throw new Error(`[SWD-ERR] !important is not allowed with local var "${styleAbbr}".`);
     }
 
+    const localVarName = styleAbbr.slice(3); // "--&"
+    if (!localVarName) {
+      throw new Error(
+        `[SWD-ERR] Missing local var name after "--&". Usage: "--&<name>[value]" (abbrLine=${abbrLine})`
+      );
+    }
+
     if (!styleDef.localVars) {
       styleDef.localVars = {};
     }
-    const localVarName = styleAbbr.slice(3); // "--&"
     if (styleDef.localVars[localVarName] != null) {
       throw new Error(`[SWD-ERR] local var "${localVarName}" is already declared in this class.`);
     }
@@ -96,7 +102,6 @@ export function parseBaseStyle(
 
   // 5) ถ้าไม่ใช่ localVar และไม่ใช่ $var => เช็ค abbrMap / globalDefineMap
   if (!(styleAbbr in abbrMap)) {
-    // ลอง globalDefineMap
     if (styleAbbr in globalDefineMap) {
       const tokens = propValue.split(/\s+/).filter(Boolean);
       if (tokens.length > 1) {
@@ -120,7 +125,7 @@ export function parseBaseStyle(
     );
   }
 
-  // 6) ถ้าอยู่ใน abbrMap => parse normal abbr ex. "bg[red]"
+  // 6) ถ้าอยู่ใน abbrMap => parse normal abbr ex. "bg[red]", "w[100px]"
   if (styleAbbr === 'ty') {
     // TODO
     // const dictEntry = typographyDict.dict[propValue];
