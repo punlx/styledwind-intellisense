@@ -1,3 +1,5 @@
+// src/generateCssCommand/constants/knownStates.ts
+
 export const knownStates = [
   'hover',
   'focus',

@@ -1,4 +1,5 @@
-// validateSwdDoc.ts
+// src/generateCssCommand/validateSwdDoc.ts
+
 import * as vscode from 'vscode';
 
 // สมมติเรามีฟังก์ชัน parse/generate ที่ไม่มี Side Effect ชื่อ generateSwdCssFromSource

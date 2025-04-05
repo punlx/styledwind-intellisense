@@ -1,6 +1,4 @@
-/** (option) parseContainerStyle / parseScreenStyle ถ้าต้องการ container/screen
-    - ตัวอย่าง omitted หรือ simplified ...
-**/
+// src/generateCssCommand/helpers/parseClassBlocksWithBraceCounting.ts
 
 import { IClassBlock } from '../types';
 

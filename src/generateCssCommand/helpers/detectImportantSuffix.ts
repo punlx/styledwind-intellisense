@@ -1,4 +1,5 @@
-/** detect !important (ลงท้ายด้วย "]!") **/
+// src/generateCssCommand/helpers/detectImportantSuffix.ts
+
 export function detectImportantSuffix(raw: string): { line: string; isImportant: boolean } {
   let trimmed = raw.trim();
   let isImportant = false;

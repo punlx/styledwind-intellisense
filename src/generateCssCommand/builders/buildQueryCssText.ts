@@ -1,4 +1,6 @@
-import { IStyleDefinition } from "../types";
+// src/generateCssCommand/builders/buildQueryCssText.ts
+
+import { IStyleDefinition } from '../types';
 
 export function buildQueryCssText(
   parentDisplayName: string,

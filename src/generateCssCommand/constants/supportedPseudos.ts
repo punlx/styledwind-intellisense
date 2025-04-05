@@ -1,3 +1,5 @@
+// src/generateCssCommand/constants/supportedPseudos.ts
+
 export const supportedPseudos = [
   'before',
   'after',

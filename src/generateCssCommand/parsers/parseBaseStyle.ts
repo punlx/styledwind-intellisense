@@ -1,3 +1,5 @@
+// src/generateCssCommand/parsers/parseBaseStyle.ts
+
 import { abbrMap } from '../../constants';
 import { globalDefineMap } from '../createSwdCssCommand';
 import { convertCSSVariable } from '../helpers/convertCSSVariable';

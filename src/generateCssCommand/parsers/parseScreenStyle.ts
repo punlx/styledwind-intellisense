@@ -1,3 +1,5 @@
+// src/generateCssCommand/parsers/parseScreenStyle.ts
+
 import { abbrMap } from '../../constants';
 import { convertCSSVariable } from '../helpers/convertCSSVariable';
 import { detectImportantSuffix } from '../helpers/detectImportantSuffix';

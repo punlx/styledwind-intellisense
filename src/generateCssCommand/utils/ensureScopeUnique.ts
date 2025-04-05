@@ -1,3 +1,5 @@
+// src/generateCssCommand/utils/ensureScopeUnique.ts
+
 export function ensureScopeUnique(scopeName: string) {
   // ถ้า scopeName==='none' => ข้าม
   if (scopeName === 'none') return;

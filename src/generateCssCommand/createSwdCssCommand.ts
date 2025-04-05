@@ -1,4 +1,5 @@
-// createSwdCssCommand.ts
+// src/generateCssCommand/createSwdCssCommand.ts
+
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';

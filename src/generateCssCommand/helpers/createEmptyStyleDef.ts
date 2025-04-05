@@ -1,3 +1,5 @@
+// src/generateCssCommand/helpers/createEmptyStyleDef.ts
+
 import { IStyleDefinition } from '../types';
 
 /** สร้าง styleDef ว่างเปล่า **/

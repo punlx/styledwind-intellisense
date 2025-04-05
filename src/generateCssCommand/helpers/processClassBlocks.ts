@@ -1,3 +1,5 @@
+// src/generateCssCommand/helpers/processClassBlocks.ts
+
 import { parseSingleAbbr } from '../parsers/parseSingleAbbr';
 import { IClassBlock, IStyleDefinition } from '../types';
 import { extractQueryBlocks } from '../utils/extractQueryBlocks';

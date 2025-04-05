@@ -1,3 +1,5 @@
+// src/generateCssCommand/constants/abbrMap.ts
+
 export const abbrMap = {
   // All
   a: 'all',

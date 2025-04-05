@@ -1,6 +1,5 @@
-/* -------------------------------------------------------------------------
-   Section B: Interfaces
-   ------------------------------------------------------------------------- */
+// src/generateCssCommand/types.ts
+
 export interface IStyleDefinition {
   base: Record<string, string>;
   states: Record<string, Record<string, string>>;

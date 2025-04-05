@@ -1,3 +1,5 @@
+// src/generateCssCommand/parsers/parseDirectives.ts
+
 import { createEmptyStyleDef } from '../helpers/createEmptyStyleDef';
 import { parseClassBlocksWithBraceCounting } from '../helpers/parseClassBlocksWithBraceCounting';
 import { IClassBlock, IConstBlock, IParsedDirective } from '../types';

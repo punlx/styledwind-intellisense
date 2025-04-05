@@ -1,3 +1,5 @@
+// src/generateCssCommand/parsers/parseSingleAbbr.ts
+
 import { knownStates } from '../constants/knownStates';
 import { supportedPseudos } from '../constants/supportedPseudos';
 import { IStyleDefinition } from '../types';

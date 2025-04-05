@@ -1,3 +1,5 @@
+// src/generateCssCommand/utils/mergeStyleDef.ts
+
 import { IStyleDefinition } from '../types';
 
 /* -------------------------------------------------------------------------
