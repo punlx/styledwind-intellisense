@@ -47,7 +47,7 @@ export const globalDefineMap: Record<string, Record<string, IStyleDefinition>> =
 /* -------------------------------------------------------------------------
    Section M: ฟังก์ชันหลัก generateSwdCssFromSource
    ------------------------------------------------------------------------- */
-function generateSwdCssFromSource(sourceText: string): string {
+export function generateSwdCssFromSource(sourceText: string): string {
   // 1) parseDirectives
   const { directives, classBlocks, constBlocks } = parseDirectives(sourceText);
 
@@ -89,7 +89,15 @@ function generateSwdCssFromSource(sourceText: string): string {
    Section N: ฟังก์ชันหลัก createSwdCssFile(doc)
    - command สำหรับ extension
    ------------------------------------------------------------------------- */
-export async function createSwdCssFile(doc: vscode.TextDocument) {
+
+/* -------------------------------------------------------------------------
+   Section N: ฟังก์ชันหลัก createSwdCssFile(doc)
+   - command สำหรับ extension
+   ------------------------------------------------------------------------- */
+export async function createSwdCssFile(
+  doc: vscode.TextDocument,
+  diagnosticCollection: vscode.DiagnosticCollection
+) {
   // 1) ตรวจไฟล์ .swd.ts
   if (!doc.fileName.endsWith('.swd.ts')) {
     return;
@@ -102,29 +110,32 @@ export async function createSwdCssFile(doc: vscode.TextDocument) {
   // 3) สร้างไฟล์ .swd.css ข้าง ๆ
   const currentDir = path.dirname(doc.fileName);
   const newCssFilePath = path.join(currentDir, base + '.swd.css');
-
   if (!fs.existsSync(newCssFilePath)) {
     fs.writeFileSync(newCssFilePath, '', 'utf8');
   }
 
-  // 4) ใส่ import "./xxx.swd.css"
+  // 4) ใส่ import "./xxx.swd.css" ในไฟล์ .swd.ts
   const relImport = `./${base}.swd.css`;
   const importLine = `import '${relImport}';\n`;
 
-  // ลบ import เดิม
+  // ล้าง diagnostics เดิมก่อน (หากมี)
+  diagnosticCollection.delete(doc.uri);
+
+  // เตรียมแก้ไขเนื้อหาไฟล์ปัจจุบัน
+  const fullText = doc.getText();
   const sanitizedBase = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const oldRegex = new RegExp(
     `^import\\s+["'][^"']*${sanitizedBase}\\.swd\\.css["'];?\\s*(?:\\r?\\n)?`,
     'm'
   );
-  const fullText = doc.getText();
+
+  // ลบ import เดิม เพื่อป้องกันซ้ำ
   let newText = fullText.replace(oldRegex, '');
   newText = newText.replace(/\n{2,}/g, '\n');
-
   // prepend import line
   const finalText = importLine + newText;
 
-  // replace doc
+  // apply edit ให้กับ Document
   const edit = new vscode.WorkspaceEdit();
   const fullRange = new vscode.Range(
     new vscode.Position(0, 0),
@@ -133,18 +144,36 @@ export async function createSwdCssFile(doc: vscode.TextDocument) {
   edit.replace(doc.uri, fullRange, finalText);
   await vscode.workspace.applyEdit(edit);
 
-  // 5) parse => generate
+  // --------------------------------------------------------
+  // (A) Parse => Generate CSS
+  // --------------------------------------------------------
   const sourceText = finalText.replace(importLine, '');
   let generatedCss = '';
+
   try {
     generatedCss = generateSwdCssFromSource(sourceText);
   } catch (e: any) {
+    // 1) แจ้ง Error ผ่าน Notification
     vscode.window.showErrorMessage(`Styledwind parse error: ${e.message}`);
+
+    // 2) ส่ง Error เข้า Problems Panel ด้วย Diagnostic
+    const diag: vscode.Diagnostic = {
+      message: e.message,
+      severity: vscode.DiagnosticSeverity.Error,
+      source: 'Styledwind Intellisense',
+      range: new vscode.Range(0, 0, 0, 0), // ระบุ range แบบง่าย (ต้นไฟล์)
+    };
+    diagnosticCollection.set(doc.uri, [diag]);
+
+    // 3) โยน error กลับเพื่อให้ command เรียกต่อหยุด
+    throw e;
   }
 
-  // 6) เขียนไฟล์ .swd.css
-  fs.writeFileSync(newCssFilePath, generatedCss, 'utf8');
+  // ถ้า success => เคลียร์ diagnostic (ถ้ามี)
+  diagnosticCollection.delete(doc.uri);
 
-  // // 7) notify
-  // vscode.window.showInformationMessage(`Generated CSS to "${base}.swd.css" done!`);
+  // --------------------------------------------------------
+  // (B) เขียนไฟล์ .swd.css
+  // --------------------------------------------------------
+  fs.writeFileSync(newCssFilePath, generatedCss, 'utf8');
 }
