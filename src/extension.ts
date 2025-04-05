@@ -1,14 +1,13 @@
 // extension.ts
 import * as vscode from 'vscode';
 
-// (1) Import ฟังก์ชัน createSwdCssFile จาก createSwdCssCommand.ts
-import { createSwdCssFile } from './createSwdCssCommand';
+// (1) Import ฟังก์ชัน createSwdCssFile ที่แก้ไขแล้ว
+import { createSwdCssFile } from './generateCssCommand/createSwdCssCommand';
 
 // (2) Import ตัวแปร generateGenericProvider (ซึ่งเป็น registerCommand อยู่แล้ว)
-//     เพื่อนำไป push ลง context.subscriptions ให้ VSCode รู้จัก command "styledwind.generateGeneric"
 import { generateGenericProvider } from './generateGenericProvider';
 
-// ***** Import provider อื่น ๆ ตามปกติ *****
+// ***** Imports อื่นๆ ตามโค้ดเดิม *****
 import {
   parseThemePaletteFull,
   parseThemeBreakpointDict,
@@ -17,7 +16,6 @@ import {
   parseThemeVariableDict,
   parseThemeDefine,
 } from './parseTheme';
-
 import { createCSSValueSuggestProvider } from './cssValueSuggestProvider';
 import { createReversePropertyProvider } from './reversePropertyProvider';
 import { updateDecorations } from './ghostTextDecorations';
@@ -35,8 +33,6 @@ import { createStyledwindThemeColorProvider } from './themePaletteColorProvider'
 import { createCssTsColorProvider, initPaletteMap } from './cssTsColorProvider';
 import { createModeSuggestionProvider } from './modeSuggestionProvider';
 import { createQueryPseudoProvider } from './createQueryPseudoProvider';
-
-// ghostSpacingDecorations
 import { initSpacingMap, updateSpacingDecorations } from './ghostSpacingDecorations';
 import { updateImportantDecorations } from './ghostImportantDecorations';
 import { createDefineProvider } from './defineProvider';
@@ -45,9 +41,14 @@ import { createDefineTopKeyProvider } from './defineTopKeyProvider';
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Styledwind Intellisense is now active!');
 
-  // 1) Parse theme
-  await initPaletteMap();
+  // --------------------------------------------------------------------------------
+  // 1) สร้าง DiagnosticCollection สำหรับใส่ Error ของเรา (Styledwind)
+  // --------------------------------------------------------------------------------
+  const styledwindDiagnosticCollection = vscode.languages.createDiagnosticCollection('styledwind');
+  context.subscriptions.push(styledwindDiagnosticCollection);
 
+  // 2) Parse theme (ตามโค้ดตัวอย่างเดิม)
+  await initPaletteMap();
   let paletteColors: Record<string, Record<string, string>> = {};
   let screenDict: Record<string, string> = {};
   let fontDict: Record<string, string> = {};
@@ -76,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  // 2) สร้าง provider/completion อื่น ๆ ตามปกติ
+  // 3) สร้าง provider / completion
   const bracketProvider = createCSSValueSuggestProvider();
   const reversePropProvider = createReversePropertyProvider();
   const colorProvider = createColorProvider(paletteColors);
@@ -117,10 +118,9 @@ export async function activate(context: vscode.ExtensionContext) {
     queryPseudoProvider
   );
 
-  // 3) Init spacingMap
+  // 4) Init spacingMap + ghost decorations
   initSpacingMap(spacingDict);
 
-  // 4) Ghost Decorations
   if (vscode.window.activeTextEditor) {
     updateDecorations(vscode.window.activeTextEditor);
     updateSpacingDecorations(vscode.window.activeTextEditor);
@@ -145,12 +145,16 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(changeDocDisposable);
 
-  // ***** สำคัญ: push generateGenericProvider ลง subscriptions
-  // (ทำให้ command "styledwind.generateGeneric" ทำงานได้)
+  // --------------------------------------------------------------------------------
+  // 5) ใส่ command "styledwind.generateGeneric"
+  // --------------------------------------------------------------------------------
   context.subscriptions.push(generateGenericProvider);
 
-  // ***** สร้าง command ใหม่: "styledwind.createSwdCssAndGenerate"
-  //     => 1) createSwdCssFile 2) เรียก command "styledwind.generateGeneric"
+  // --------------------------------------------------------------------------------
+  // 6) สร้าง command ใหม่: "styledwind.createSwdCssAndGenerate"
+  //    - เรียก createSwdCssFile(...) (ถ้า error => throw => จบ => ไม่ไปต่อ)
+  //    - ถ้า success => เรียก generateGeneric
+  // --------------------------------------------------------------------------------
   const combinedCommand = vscode.commands.registerCommand(
     'styledwind.createSwdCssAndGenerate',
     async () => {
@@ -160,20 +164,26 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      // (A) เรียก createSwdCssFile(doc)
-      await createSwdCssFile(editor.document);
+      try {
+        // (A) ถ้าเกิด error ภายใน createSwdCssFile => จะ throw e กลับมา => ไปที่ catch
+        await createSwdCssFile(editor.document, styledwindDiagnosticCollection);
+      } catch (err: any) {
+        // ถ้าเข้ามาในนี้ => หยุด ไม่ไป trigger command ถัดไป
+        console.error('Error in createSwdCssFile => ', err);
+        return;
+      }
 
-      // (B) เรียก command เดิม "styledwind.generateGeneric"
-      //     จะใช้ activeTextEditor เดิม => generateGeneric
+      // (B) ถ้าไม่ error => สั่ง generateGeneric ได้เลย
       await vscode.commands.executeCommand('styledwind.generateGeneric');
-
       vscode.window.showInformationMessage('Created .swd.css and Generated Generic done!');
     }
   );
   context.subscriptions.push(combinedCommand);
 
-  // **** (ใหม่) Auto-run command ตอน save
-  // ถ้าเป็น .css.ts => เรียก "styledwind.createSwdCssAndGenerate"
+  // --------------------------------------------------------------------------------
+  // 7) Auto-run command ตอน save
+  // ถ้าเป็น .swd.ts => เรียก "styledwind.createSwdCssAndGenerate"
+  // --------------------------------------------------------------------------------
   const saveDisposable = vscode.workspace.onDidSaveTextDocument(async (savedDoc) => {
     if (savedDoc.fileName.endsWith('.swd.ts')) {
       await vscode.commands.executeCommand('styledwind.createSwdCssAndGenerate');
